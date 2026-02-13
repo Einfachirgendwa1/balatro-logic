@@ -1,7 +1,7 @@
-﻿use crate::hands::HandType::*;
+﻿use strum::{EnumCount, EnumIter};
 
 #[repr(u8)]
-#[derive(Debug, Copy, Clone, PartialEq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
 pub enum HandType {
     HighCard,
     Pair,
@@ -17,20 +17,4 @@ pub enum HandType {
     FlushFive,
 }
 
-impl HandType {
-    pub const COUNT: usize = 12;
-    pub const ALL: [HandType; Self::COUNT] = [
-        HighCard,
-        Pair,
-        TwoPair,
-        ThreeOfAKind,
-        Straight,
-        Flush,
-        FullHouse,
-        FourOfAKind,
-        StraightFlush,
-        FiveOfAKind,
-        FlushHouse,
-        FlushFive,
-    ];
-}
+impl HandType {}

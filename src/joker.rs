@@ -1,4 +1,5 @@
 ﻿use crate::{blind::Blind, event::OnBlindEntered, hands::HandType, joker::JokerType::*};
+use strum::{EnumCount, EnumIter};
 
 pub struct Joker {
     pub(crate) joker_type: JokerType,
@@ -25,7 +26,7 @@ pub struct Stickers {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
 pub enum JokerType {
     Joker,
     GreedyJoker,

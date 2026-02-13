@@ -3,6 +3,7 @@
     event::{OnBlindEntered, OnHandPlayed},
     hands::HandType,
 };
+use strum::EnumCount;
 
 pub struct Blind {
     pub(crate) blind_type: BlindType,

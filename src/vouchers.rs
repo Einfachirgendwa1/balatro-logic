@@ -1,0 +1,38 @@
+﻿use strum::{EnumCount, EnumIter};
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
+pub enum Voucher {
+    Overstock,
+    OverstockPlus,
+    ClearanceSale,
+    Liquidation,
+    Hone,
+    GlowUp,
+    RerollSurplus,
+    RerollGlut,
+    CrystalBall,
+    OmenGlobe,
+    Telescope,
+    Observatory,
+    Grabber,
+    NachoTong,
+    Wasteful,
+    Recyclomancy,
+    TarotMerchant,
+    TarotTycoon,
+    PlanetMerchant,
+    PlanetTycoon,
+    SeedMoney,
+    MoneyTree,
+    Blank,
+    Antimatter,
+    MagicTrick,
+    Illusion,
+    Hieroglyph,
+    Petroglyph,
+    DirectorsCut,
+    Retcon,
+    PaintBrush,
+    Palette,
+}
