@@ -3,14 +3,13 @@ use strum::{EnumCount, EnumIter};
 
 pub struct Joker {
     pub(crate) joker_type: JokerType,
-    pub(crate) edition: Edition,
+    pub(crate) edition: JokerEdition,
     pub(crate) stickers: Stickers,
     pub(crate) sell_value: u32,
     pub(crate) debuffed: bool,
 }
 
-pub enum Edition {
-    None,
+pub enum JokerEdition {
     Base,
     Foil,
     Holographic,

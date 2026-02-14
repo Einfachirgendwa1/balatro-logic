@@ -1,20 +1,44 @@
 ﻿use crate::{
+    card::{
+        Card, Edition, Enhancement, Rank, Seal, Suit,
+        Suit::{Heart, Spade},
+    },
     consumable::{Consumable, Consumable::SpectralCard, Spectral::Hex, Tarot},
+    misc::Log,
     run::Run,
-    seeding::hash,
+    seeding::{hash, random_element},
     stake::Stake,
     vouchers::Voucher,
 };
-use std::collections::HashMap;
-use strum::{EnumCount, EnumIter};
+use itertools::Itertools;
+use std::{collections::HashMap, sync::LazyLock};
+use strum::{EnumCount, EnumIter, IntoEnumIterator};
 use Consumable::TarotCard;
-use Deck::*;
+use DeckType::*;
 use Tarot::TheFool;
 use Voucher::*;
 
+pub static DEFAULT_CARDS: LazyLock<Vec<Card>> = LazyLock::new(|| {
+    Suit::iter()
+        .cartesian_product(Rank::iter())
+        .map(|(suit, rank)| Card {
+            suit,
+            rank,
+            enhancement: Enhancement::None,
+            edition: Edition::Base,
+            seal: Seal::None,
+        })
+        .collect()
+});
+
+pub struct Deck {
+    pub deck_type: DeckType,
+    pub cards: Vec<Card>,
+}
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
-pub enum Deck {
+pub enum DeckType {
     Red,
     Blue,
     Yellow,
@@ -24,7 +48,7 @@ pub enum Deck {
     Nebula,
     Ghost,
     Abandoned,
-    Checked,
+    Checkered,
     Zodiac,
     Painted,
     Anaglyph,
@@ -32,12 +56,15 @@ pub enum Deck {
     Erratic,
 }
 
-impl Deck {
+impl DeckType {
     pub fn new_run(self, seed: String, stake: Stake) -> Run {
         let mut run = Run {
-            hashed_seed: hash(&seed),
+            hashed_seed: hash(seed.as_bytes()) as _,
             seed,
-            deck: self,
+            deck: Deck {
+                deck_type: self,
+                cards: DEFAULT_CARDS.clone(),
+            },
             stake,
             ante: 1,
             money: 4,
@@ -80,6 +107,21 @@ impl Deck {
             Painted => {
                 run.hand_size += 2;
                 run.joker_slots -= 1;
+            }
+            Checkered => {
+                for card in &mut run.deck.cards {
+                    match card.suit {
+                        Suit::Club => card.suit = Spade,
+                        Suit::Diamond => card.suit = Heart,
+                        _ => {}
+                    }
+                }
+            }
+            Erratic => {
+                for idx in 0..run.deck.cards.len() {
+                    let seed = run.seed("erratic");
+                    run.deck.cards[idx] = random_element(&DEFAULT_CARDS, seed).clone().log();
+                }
             }
             _ => {}
         }

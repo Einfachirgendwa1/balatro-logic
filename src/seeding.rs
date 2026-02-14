@@ -1,7 +1,57 @@
-﻿use crate::run::Run;
-use consts::PI;
+﻿use crate::{
+    misc::{Also, Log},
+    run::Run,
+};
 use rand::{prelude::*, rng};
-use std::{f64::consts, iter::repeat_with};
+use std::{f64::consts::PI, iter::repeat_with};
+
+mod math {
+    use mlua::{Function, Lua, Table};
+    use std::cell::LazyCell;
+
+    struct LuaRng {
+        lua_randomseed: Function,
+        lua_random: Function,
+    }
+
+    thread_local! {
+        pub static LUA: LazyCell<Lua> = LazyCell::new(Lua::new);
+        static RNG: LazyCell<LuaRng> = LazyCell::new(|| {
+            LUA.with(|lua| lua.load(include_str!(r"C:\Program Files (x86)\Steam\steamapps\common\Balatro\source\functions\misc_functions.lua"))).exec().unwrap();
+
+            let math: Table = LUA.with(|v| v.globals().get("math").unwrap());
+
+            LuaRng {
+                lua_random: math.get("random").expect("math.random not found!"),
+                lua_randomseed: math.get("randomseed").expect("math.randomseed not found!"),
+            }
+        });
+    }
+    pub(crate) fn randomseed(seed: f64) {
+        RNG.with(|rng| {
+            rng.lua_randomseed
+                .call::<()>(seed)
+                .expect("Call to math.randomseed failed!")
+        });
+    }
+
+    pub(crate) fn random() -> f64 {
+        RNG.with(|rng| {
+            rng.lua_random
+                .call::<f64>(())
+                .expect("Call to math.random failed!")
+        })
+    }
+
+    pub(crate) fn random_idx(len: usize) -> usize {
+        RNG.with(|rng| {
+            rng.lua_random
+                .call::<usize>(len)
+                .expect("Call to math.random failed!")
+                - 1
+        })
+    }
+}
 
 pub fn random_seed() -> String {
     let mut rng = rng();
@@ -19,36 +69,44 @@ pub fn random_seed() -> String {
     .collect()
 }
 
-pub fn hash(s: &str) -> f64 {
-    let mut num = 1.0_f64;
+pub const fn hash(s: &[u8]) -> f64 {
+    let mut num = 1.;
+    let mut i = s.len();
 
-    for (i, byte) in s.bytes().rev().enumerate() {
-        let idx = s.len() - i;
-        num = (PI * ((1.1239285023 / num) * byte as f64 + idx as f64)) % 1.0;
+    while i != 0 {
+        let byte = s[i - 1];
+
+        let magic_division = 1.1239285023 / num;
+        num = ((magic_division * byte as f64 * PI) + (PI * i as f64)) % 1.;
+
+        i -= 1;
     }
-
     num
 }
 
 /// O(n) Fisher-Yates
-pub fn shuffle<T>(list: &mut [T], seed: u64) {
-    let mut rng = StdRng::seed_from_u64(seed);
+pub fn shuffle<T>(list: &mut [T], seed: f64) {
+    math::randomseed(seed);
 
     for i in (1..list.len()).rev() {
-        let j = rng.random_range(0..=i);
-        list.swap(i, j);
+        list.swap(i, math::random_idx(i));
     }
 }
 
+pub fn random_element<T>(list: &[T], seed: f64) -> &'_ T {
+    math::randomseed(seed);
+    &list[math::random_idx(list.len())]
+}
+
 impl Run {
-    pub(crate) fn seed_channel(&mut self, channel: String) -> f64 {
-        let chan_value = self
+    pub fn seed(&mut self, key: &str) -> f64 {
+        let value = self
             .pseudorandom_state
-            .entry(channel)
-            .or_insert_with_key(|key| hash(&format!("{key}{}", self.seed)));
+            .entry(key.to_string())
+            .or_insert_with_key(|key| hash(format!("{key}{}", self.seed).as_bytes()));
 
-        *chan_value = (2.134453429141 + *chan_value * 1.72431234) % 1.0;
+        *value = (((2.134453429141 + *value * 1.72431234) % 1.) * 1e13).round() / 1e13;
 
-        (*chan_value + self.hashed_seed) / 2.0
+        (*value + self.hashed_seed) / 2.0
     }
 }
