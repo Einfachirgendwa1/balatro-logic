@@ -17,8 +17,6 @@ mod math {
     thread_local! {
         pub static LUA: LazyCell<Lua> = LazyCell::new(Lua::new);
         static RNG: LazyCell<LuaRng> = LazyCell::new(|| {
-            LUA.with(|lua| lua.load(include_str!(r"C:\Program Files (x86)\Steam\steamapps\common\Balatro\source\functions\misc_functions.lua"))).exec().unwrap();
-
             let math: Table = LUA.with(|v| v.globals().get("math").unwrap());
 
             LuaRng {
@@ -33,14 +31,6 @@ mod math {
                 .call::<()>(seed)
                 .expect("Call to math.randomseed failed!")
         });
-    }
-
-    pub(crate) fn random() -> f64 {
-        RNG.with(|rng| {
-            rng.lua_random
-                .call::<f64>(())
-                .expect("Call to math.random failed!")
-        })
     }
 
     pub(crate) fn random_idx(len: usize) -> usize {
