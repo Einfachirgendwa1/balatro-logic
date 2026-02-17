@@ -1,7 +1,4 @@
-﻿use crate::{
-    misc::{Also, Log},
-    run::Run,
-};
+﻿use crate::run::RunData;
 use rand::{prelude::*, rng};
 use std::{f64::consts::PI, iter::repeat_with};
 
@@ -88,7 +85,7 @@ pub fn random_element<T>(list: &[T], seed: f64) -> &'_ T {
     &list[math::random_idx(list.len())]
 }
 
-impl Run {
+impl RunData {
     pub fn seed(&mut self, key: &str) -> f64 {
         let value = self
             .pseudorandom_state

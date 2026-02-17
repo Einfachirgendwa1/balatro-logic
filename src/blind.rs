@@ -1,14 +1,19 @@
 ﻿use crate::{
     blind::{BlindType::*, BossBlindType::*},
-    event::{OnBlindEntered, OnHandPlayed},
+    event_list::HandPlayedEventData,
     hands::HandType,
+    run::{Run, RunData},
 };
 use strum::EnumCount;
+use ShowdownBossBlindType::VioletVessel;
 
 pub struct Blind {
-    pub(crate) blind_type: BlindType,
-    pub(crate) hands: u32,
-    pub(crate) discards: u32,
+    pub chips: f64,
+    pub mult: f64,
+    pub blind_type: BlindType,
+    pub requirement: f64,
+    pub hands: u32,
+    pub discards: u32,
 }
 
 pub enum BlindType {
@@ -36,7 +41,7 @@ pub enum BossBlindType {
         was_already_played: [bool; HandType::COUNT],
     },
     TheMouth {
-        only_playable_hand: Option<HandType>,
+        allowed_hand: Option<HandType>,
     },
     ThePlant,
     TheSerpent,
@@ -57,37 +62,65 @@ pub enum ShowdownBossBlindType {
 }
 
 impl Blind {
-    pub(crate) fn blind_entered(&mut self, event: &mut OnBlindEntered) {
-        match &mut self.blind_type {
-            Boss(TheWater) => self.discards *= event.run.get_chicot_count(),
-            Boss(TheNeedle) => self.hands = 1 + (self.hands - 1) * event.run.get_chicot_count(),
-            Boss(TheManacle) => event.run.hand_size += event.run.get_chicot_count() - 1,
-            _ => {}
-        }
-    }
+    fn hand_played(&mut self, data: &mut RunData, event: &mut HandPlayedEventData) {
+        let hand_type = event.hand.resolve(&data.cards).hand_type();
 
-    pub(crate) fn hand_played(&mut self, event: OnHandPlayed) {
         match &mut self.blind_type {
-            Boss(TheArm) => event.run.change_hand_level(event.hand_type, -1),
+            Boss(TheArm) => data.change_hand_level(hand_type, -1),
+
             Boss(TheEye { was_already_played }) => {
-                if was_already_played[event.hand_type as usize] {
+                if was_already_played[hand_type as usize] {
                     (event.not_allowed)()
                 }
 
-                was_already_played[event.hand_type as usize] = true;
+                was_already_played[hand_type as usize] = true;
             }
 
-            Boss(TheMouth { only_playable_hand }) => match only_playable_hand {
-                None => *only_playable_hand = Some(event.hand_type),
-
-                Some(hand) => {
-                    if event.hand_type != *hand {
-                        (event.not_allowed)()
-                    }
+            Boss(TheMouth { allowed_hand }) => {
+                if hand_type != *allowed_hand.get_or_insert(hand_type) {
+                    (event.not_allowed)()
                 }
-            },
+            }
 
             _ => {}
         }
+    }
+    pub fn new(run: &mut Run, blind_type: BlindType) {
+        let base = run.data.base_chip_requirement();
+        let requirement = match &blind_type {
+            Small => base,
+            Big => base * 1.5,
+            Boss(TheWall) => base * 4.,
+            Boss(TheNeedle) => base,
+            Boss(_) => base * 2.,
+            ShowdownBoss(VioletVessel) => base * 6.,
+            ShowdownBoss(_) => base * 2.,
+        };
+
+        let discards = match blind_type {
+            Boss(TheWater) => run.data.starting_discards * run.get_chicot_count(),
+            _ => run.data.starting_discards,
+        };
+
+        let hands = match blind_type {
+            Boss(TheNeedle) => 1 + (run.data.starting_hands - 1) * run.get_chicot_count(),
+            _ => run.data.starting_hands,
+        };
+
+        match blind_type {
+            Boss(TheManacle) => run.data.hand_size += run.get_chicot_count() - 1,
+            _ => {}
+        }
+
+        let blind = Blind {
+            chips: 0.,
+            mult: 0.,
+            blind_type,
+            requirement,
+            hands,
+            discards,
+        };
+
+        run.enter_blind(blind);
     }
 }

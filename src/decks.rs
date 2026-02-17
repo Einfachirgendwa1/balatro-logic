@@ -1,33 +1,27 @@
 ﻿use crate::{
-    card::{
-        Card, Edition, Enhancement, Rank, Seal, Suit,
-        Suit::{Heart, Spade},
-    },
+    blind::{Blind, BlindType},
+    card::{Card, Suit::*, ALPHABETICAL_RANK_ORDER, ALPHABETICAL_SUIT_ORDER},
     consumable::{Consumable, Consumable::SpectralCard, Spectral::Hex, Tarot},
-    misc::Log,
-    run::Run,
+    game_state::GameState,
+    misc::{Also, UnpackedMap},
+    run::{Run, RunData},
     seeding::{hash, random_element},
     stake::Stake,
     vouchers::Voucher,
 };
 use itertools::Itertools;
 use std::{collections::HashMap, sync::LazyLock};
-use strum::{EnumCount, EnumIter, IntoEnumIterator};
+use strum::{EnumCount, EnumIter};
 use Consumable::TarotCard;
 use DeckType::*;
 use Tarot::TheFool;
 use Voucher::*;
 
 pub static DEFAULT_CARDS: LazyLock<Vec<Card>> = LazyLock::new(|| {
-    Suit::iter()
-        .cartesian_product(Rank::iter())
-        .map(|(suit, rank)| Card {
-            suit,
-            rank,
-            enhancement: Enhancement::None,
-            edition: Edition::Base,
-            seal: Seal::None,
-        })
+    ALPHABETICAL_SUIT_ORDER
+        .into_iter()
+        .cartesian_product(ALPHABETICAL_RANK_ORDER)
+        .map2(Card::new)
         .collect()
 });
 
@@ -56,76 +50,90 @@ pub enum DeckType {
     Erratic,
 }
 
+impl Deck {
+    pub fn sorted(&self) -> Vec<&'_ Card> {
+        let mut vec = self.cards.iter().collect::<Vec<&_>>();
+        vec.sort_by(|a, b| a.cmp(b).reverse());
+        vec
+    }
+}
+
 impl DeckType {
     pub fn new_run(self, seed: String, stake: Stake) -> Run {
-        let mut run = Run {
+        let mut data = RunData {
             hashed_seed: hash(seed.as_bytes()) as _,
+            deck_type: self,
             seed,
-            deck: Deck {
-                deck_type: self,
-                cards: DEFAULT_CARDS.clone(),
-            },
             stake,
-            ante: 1,
-            money: 4,
-            hand_size: 8,
-            jokers: Vec::new(),
             joker_slots: 5,
             consumables: Vec::new(),
             consumable_slots: 5,
             vouchers: [false; Voucher::COUNT],
+            ante: 1,
+            money: 4,
+            hand_size: 8,
+            starting_hands: 4,
+            starting_discards: if stake >= Stake::Blue { 2 } else { 3 },
+            cards: DEFAULT_CARDS.clone(),
             times_played: [0; 12],
             hand_levels: [1; 12],
             pseudorandom_state: HashMap::new(),
-            starting_hands: 4,
-            starting_discards: if stake >= Stake::Blue { 2 } else { 3 },
         };
 
         match self {
-            Red => run.starting_discards += 1,
-            Blue => run.starting_hands += 1,
-            Yellow => run.money += 10,
+            Red => data.starting_discards += 1,
+            Blue => data.starting_hands += 1,
+            Yellow => data.money += 10,
             Black => {
-                run.joker_slots += 1;
-                run.starting_hands -= 1;
+                data.joker_slots += 1;
+                data.starting_hands -= 1;
             }
             Magic => {
-                run.apply_voucher_effects(CrystalBall);
-                run.consumables.push(TarotCard(TheFool));
-                run.consumables.push(TarotCard(TheFool));
+                data.apply_voucher_effects(CrystalBall);
+                data.consumables.push(TarotCard(TheFool));
+                data.consumables.push(TarotCard(TheFool));
             }
             Nebula => {
-                run.apply_voucher_effects(Telescope);
-                run.consumable_slots -= 1;
+                data.apply_voucher_effects(Telescope);
+                data.consumable_slots -= 1;
             }
-            Ghost => run.consumables.push(SpectralCard(Hex)),
+            Ghost => {
+                data.consumables.push(SpectralCard(Hex));
+                todo!()
+            }
             Zodiac => {
-                run.apply_voucher_effects(TarotMerchant);
-                run.apply_voucher_effects(PlanetMerchant);
-                run.apply_voucher_effects(Overstock);
+                data.apply_voucher_effects(TarotMerchant);
+                data.apply_voucher_effects(PlanetMerchant);
+                data.apply_voucher_effects(Overstock);
             }
             Painted => {
-                run.hand_size += 2;
-                run.joker_slots -= 1;
+                data.hand_size += 2;
+                data.joker_slots -= 1;
             }
             Checkered => {
-                for card in &mut run.deck.cards {
+                for card in &mut data.cards {
                     match card.suit {
-                        Suit::Club => card.suit = Spade,
-                        Suit::Diamond => card.suit = Heart,
+                        Club => card.suit = Spade,
+                        Diamond => card.suit = Heart,
                         _ => {}
                     }
                 }
             }
             Erratic => {
-                for idx in 0..run.deck.cards.len() {
-                    let seed = run.seed("erratic");
-                    run.deck.cards[idx] = random_element(&DEFAULT_CARDS, seed).clone().log();
+                for idx in 0..data.cards.len() {
+                    let seed = data.seed("erratic");
+                    data.cards[idx] = random_element(&DEFAULT_CARDS, seed).clone();
                 }
             }
-            _ => {}
+            Abandoned => data.cards.retain(|card| !card.rank.is_face_card()),
+            _ => todo!(),
         }
 
-        run
+        Run {
+            data,
+            jokers: Vec::new(),
+            game_state: GameState::Shop,
+        }
+        .also_mut(|run| Blind::new(run, BlindType::Small))
     }
 }

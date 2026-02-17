@@ -1,12 +1,22 @@
-﻿use crate::{blind::Blind, event::OnBlindEntered, hands::HandType, joker::JokerType::*};
+﻿use crate::{
+    event::DispatcherOrder,
+    event_list::{CardScoredEventData, HandPlayedEventData},
+    hands::{
+        HandType,
+        HandType::{Flush, Pair, Straight, ThreeOfAKind, TwoPair},
+    },
+    joker::JokerType::*,
+    run::{Run, RunData},
+};
 use strum::{EnumCount, EnumIter};
 
 pub struct Joker {
-    pub(crate) joker_type: JokerType,
-    pub(crate) edition: JokerEdition,
-    pub(crate) stickers: Stickers,
-    pub(crate) sell_value: u32,
-    pub(crate) debuffed: bool,
+    pub joker_type: JokerType,
+    pub edition: JokerEdition,
+    pub stickers: Stickers,
+    pub sell_value: u32,
+    pub debuffed: bool,
+    pub dispatcher_order: DispatcherOrder,
 }
 
 pub enum JokerEdition {
@@ -48,7 +58,7 @@ pub enum JokerType {
     Mime,
     CreditCard,
     CeremonialDagger {
-        multiplier: u32,
+        mult: u32,
     },
     Banner,
     MysticSummit,
@@ -193,51 +203,129 @@ pub enum JokerType {
     Perkeo,
 }
 
-impl Joker {
-    pub(crate) fn on_blind_entered(idx: usize, event: &mut OnBlindEntered, blind: &mut Blind) {
-        match &mut event.run.jokers[idx].joker_type {
-            CeremonialDagger { .. } => {
-                let sell_value = event.run.jokers[idx + 1].sell_value;
+pub type PostExecCb = Box<dyn FnMut(usize, &mut Run)>;
 
-                let CeremonialDagger { multiplier } = &mut event.run.jokers[idx].joker_type else {
+impl Joker {
+    #[must_use]
+    pub fn blind_entered(&mut self) -> Option<PostExecCb> {
+        match self.joker_type {
+            CeremonialDagger { .. } => Some(Box::new(|index, run| {
+                if run.jokers.len() == index + 1 || run.jokers[index + 1].cant_be_destroyed() {
+                    return;
+                }
+
+                let joker = run.jokers.remove(index + 1);
+
+                let CeremonialDagger { mult } = &mut run.jokers[index].joker_type else {
                     panic!()
                 };
 
-                *multiplier += sell_value * 2;
-                event.run.jokers.remove(idx + 1);
+                *mult += joker.sell_value;
+            })),
+            _ => None,
+        }
+    }
+
+    const PLUS_MULT_HANDTYPE_JOKERS: [(JokerType, HandType, f64); 5] = [
+        (JollyJoker, Pair, 8.),
+        (ZanyJoker, ThreeOfAKind, 12.),
+        (MadJoker, TwoPair, 10.),
+        (CrazyJoker, Straight, 12.),
+        (DrollJoker, Flush, 10.),
+    ];
+
+    const PLUS_CHIP_HANDTYPE_JOKERS: [(JokerType, HandType, f64); 5] = [
+        (SlyJoker, Pair, 50.),
+        (WilyJoker, ThreeOfAKind, 100.),
+        (CleverJoker, TwoPair, 80.),
+        (DeviousJoker, Straight, 100.),
+        (CraftyJoker, Flush, 80.),
+    ];
+
+    pub fn scored(
+        &mut self,
+        data: &mut RunData,
+        event: &mut HandPlayedEventData,
+    ) -> Option<PostExecCb> {
+        for (joker, hand_type, mult) in Self::PLUS_MULT_HANDTYPE_JOKERS {
+            if self.joker_type == joker {
+                if event.hand.resolve(&data.cards).contains(hand_type) {
+                    event.blind.mult += mult;
+                }
+
+                return None;
             }
+        }
 
-            MarbleJoker => todo!(),
+        for (joker, hand_type, chips) in Self::PLUS_CHIP_HANDTYPE_JOKERS {
+            if self.joker_type == joker {
+                if event.hand.resolve(&data.cards).contains(hand_type) {
+                    event.blind.chips += chips;
+                }
 
-            Burglar => {
-                blind.hands += 3;
-                blind.discards = 0;
+                return None;
             }
+        }
 
-            DNA { ready } => *ready = true,
-            SixthSense { ready } => *ready = true,
-            TradingCard { ready } => *ready = true,
-            BurntJoker { ready } => *ready = true,
-
-            CardSharp { played_before } => *played_before = [false; HandType::COUNT],
-
-            Madness => todo!(),
-            RiffRaff => todo!(),
-
-            TurtleBean { hand_size } => event.run.hand_size += *hand_size,
-
-            Drunkard => blind.discards += 1,
-            Troubadour => blind.hands -= 1,
-
-            Certificate => todo!(),
-
-            MerryAndy => blind.discards += 3,
-
-            Brainstorm => todo!(),
-            Blueprint => todo!(),
-            Cartomancer => todo!(),
-
+        match &self.joker_type {
+            Joker => event.blind.mult += 4.,
+            HalfJoker => {
+                if event.hand.len <= 3 {
+                    event.blind.mult += 20.
+                }
+            }
+            Banner => event.blind.chips += event.blind.discards as f64 * 30.,
+            MysticSummit => {
+                if event.blind.discards == 0 {
+                    event.blind.mult += 15.
+                }
+            }
+            RaisedFist => {
+                let smallest_rank = event.hand.resolve(&data.cards).ranks().min().unwrap() * 2;
+                event.blind.mult += smallest_rank as f64
+            }
+            CeremonialDagger { mult } => event.blind.mult += *mult as f64,
             _ => {}
         }
+
+        None
+    }
+
+    fn card_scored(&mut self, event: &mut CardScoredEventData) {
+        match &self.joker_type {
+            SmearedJoker => {
+                event.suit.spade |= event.suit.club;
+                event.suit.club |= event.suit.spade;
+                event.suit.heart |= event.suit.diamond;
+                event.suit.diamond |= event.suit.heart;
+            }
+            WrathfulJoker => {
+                if event.suit.spade {
+                    event.hand_played.blind.mult += 3.
+                }
+            }
+            LustyJoker => {
+                if event.suit.heart {
+                    event.hand_played.blind.mult += 3.
+                }
+            }
+            GluttonousJoker => {
+                if event.suit.club {
+                    event.hand_played.blind.mult += 3.
+                }
+            }
+            GreedyJoker => {
+                if event.suit.diamond {
+                    event.hand_played.blind.mult += 3.
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
+impl Joker {
+    fn cant_be_destroyed(&self) -> bool {
+        self.stickers.eternal
     }
 }
