@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="RemoteTargetsManager">
+    <targets>
+      <target name="WSL - Ubuntu" type="wsl" uuid="aabd48da-ad7b-4e10-9bcb-4dca439077e5">
+        <config>
+          <option name="distributionMsId" value="Ubuntu" />
+          <option name="projectRootOnTarget" value="{exitCode=0, timeout=false, cancelled=false, stdout=/tmp/tmp.YXr8NR11xU&#13;&#10;, stderr=}/balatro-logic" />
+        </config>
+        <ContributedStateBase type="RsLanguageRuntime">
+          <config>
+            <option name="cargoPath" value="/home/einfachirgendwa/.cargo/bin/cargo" />
+            <option name="cargoVersion" value="1.93.0 (083ac5135 2025-12-15)" />
+            <option name="rustcPath" value="/home/einfachirgendwa/.cargo/bin/rustc" />
+            <option name="rustcVersion" value="1.93.0 (254b59607 2026-01-19)" />
+          </config>
+        </ContributedStateBase>
+      </target>
+    </targets>
+  </component>
+</project>
