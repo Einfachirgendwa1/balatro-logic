@@ -2,10 +2,9 @@
     blind::{BlindType::*, BossBlindType::*},
     event_list::HandPlayedEventData,
     hands::HandType,
-    run::{Run, RunData},
+    run::RunData,
 };
 use strum::EnumCount;
-use ShowdownBossBlindType::VioletVessel;
 
 pub struct Blind {
     pub chips: f64,
@@ -62,7 +61,7 @@ pub enum ShowdownBossBlindType {
 }
 
 impl Blind {
-    fn hand_played(&mut self, data: &mut RunData, event: &mut HandPlayedEventData) {
+    pub fn hand_played(&mut self, data: &mut RunData, event: &mut HandPlayedEventData) {
         let hand_type = event.hand.resolve(&data.cards).hand_type();
 
         match &mut self.blind_type {
@@ -84,43 +83,5 @@ impl Blind {
 
             _ => {}
         }
-    }
-    pub fn new(run: &mut Run, blind_type: BlindType) {
-        let base = run.data.base_chip_requirement();
-        let requirement = match &blind_type {
-            Small => base,
-            Big => base * 1.5,
-            Boss(TheWall) => base * 4.,
-            Boss(TheNeedle) => base,
-            Boss(_) => base * 2.,
-            ShowdownBoss(VioletVessel) => base * 6.,
-            ShowdownBoss(_) => base * 2.,
-        };
-
-        let discards = match blind_type {
-            Boss(TheWater) => run.data.starting_discards * run.get_chicot_count(),
-            _ => run.data.starting_discards,
-        };
-
-        let hands = match blind_type {
-            Boss(TheNeedle) => 1 + (run.data.starting_hands - 1) * run.get_chicot_count(),
-            _ => run.data.starting_hands,
-        };
-
-        match blind_type {
-            Boss(TheManacle) => run.data.hand_size += run.get_chicot_count() - 1,
-            _ => {}
-        }
-
-        let blind = Blind {
-            chips: 0.,
-            mult: 0.,
-            blind_type,
-            requirement,
-            hands,
-            discards,
-        };
-
-        run.enter_blind(blind);
     }
 }

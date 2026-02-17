@@ -1,4 +1,5 @@
 ﻿use crate::{
+    blind::Blind,
     event::DispatcherOrder,
     event_list::{CardScoredEventData, HandPlayedEventData},
     hands::{
@@ -245,12 +246,13 @@ impl Joker {
     pub fn scored(
         &mut self,
         data: &mut RunData,
+        blind: &mut Blind,
         event: &mut HandPlayedEventData,
     ) -> Option<PostExecCb> {
         for (joker, hand_type, mult) in Self::PLUS_MULT_HANDTYPE_JOKERS {
             if self.joker_type == joker {
                 if event.hand.resolve(&data.cards).contains(hand_type) {
-                    event.blind.mult += mult;
+                    blind.mult += mult;
                 }
 
                 return None;
@@ -260,7 +262,7 @@ impl Joker {
         for (joker, hand_type, chips) in Self::PLUS_CHIP_HANDTYPE_JOKERS {
             if self.joker_type == joker {
                 if event.hand.resolve(&data.cards).contains(hand_type) {
-                    event.blind.chips += chips;
+                    blind.chips += chips;
                 }
 
                 return None;
@@ -268,30 +270,30 @@ impl Joker {
         }
 
         match &self.joker_type {
-            Joker => event.blind.mult += 4.,
+            Joker => blind.mult += 4.,
             HalfJoker => {
                 if event.hand.len <= 3 {
-                    event.blind.mult += 20.
+                    blind.mult += 20.
                 }
             }
-            Banner => event.blind.chips += event.blind.discards as f64 * 30.,
+            Banner => blind.chips += blind.discards as f64 * 30.,
             MysticSummit => {
-                if event.blind.discards == 0 {
-                    event.blind.mult += 15.
+                if blind.discards == 0 {
+                    blind.mult += 15.
                 }
             }
             RaisedFist => {
                 let smallest_rank = event.hand.resolve(&data.cards).ranks().min().unwrap() * 2;
-                event.blind.mult += smallest_rank as f64
+                blind.mult += smallest_rank as f64
             }
-            CeremonialDagger { mult } => event.blind.mult += *mult as f64,
+            CeremonialDagger { mult } => blind.mult += *mult as f64,
             _ => {}
         }
 
         None
     }
 
-    fn card_scored(&mut self, event: &mut CardScoredEventData) {
+    fn card_scored(&mut self, blind: &mut Blind, event: &mut CardScoredEventData) {
         match &self.joker_type {
             SmearedJoker => {
                 event.suit.spade |= event.suit.club;
@@ -301,22 +303,22 @@ impl Joker {
             }
             WrathfulJoker => {
                 if event.suit.spade {
-                    event.hand_played.blind.mult += 3.
+                    blind.mult += 3.
                 }
             }
             LustyJoker => {
                 if event.suit.heart {
-                    event.hand_played.blind.mult += 3.
+                    blind.mult += 3.
                 }
             }
             GluttonousJoker => {
                 if event.suit.club {
-                    event.hand_played.blind.mult += 3.
+                    blind.mult += 3.
                 }
             }
             GreedyJoker => {
                 if event.suit.diamond {
-                    event.hand_played.blind.mult += 3.
+                    blind.mult += 3.
                 }
             }
             _ => {}

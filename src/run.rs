@@ -1,5 +1,10 @@
 use crate::{
-    blind::Blind,
+    blind::{
+        Blind, BlindType,
+        BlindType::{Big, Boss, ShowdownBoss, Small},
+        BossBlindType::{TheManacle, TheNeedle, TheWall, TheWater},
+        ShowdownBossBlindType::VioletVessel,
+    },
     card::Card,
     consumable::Consumable,
     decks::DeckType,
@@ -121,6 +126,48 @@ impl RunData {
 }
 
 impl Run {
+    pub fn new_blind(&mut self, blind_type: BlindType) {
+        let base = self.data.base_chip_requirement();
+        let requirement = match &blind_type {
+            Small => base,
+            Big => base * 1.5,
+            Boss(TheWall) => base * 4.,
+            Boss(TheNeedle) => base,
+            Boss(_) => base * 2.,
+            ShowdownBoss(VioletVessel) => base * 6.,
+            ShowdownBoss(_) => base * 2.,
+        };
+
+        let discards = match blind_type {
+            Boss(TheWater) => self.data.starting_discards * self.get_chicot_count(),
+            _ => self.data.starting_discards,
+        };
+
+        let hands = match blind_type {
+            Boss(TheNeedle) => 1 + (self.data.starting_hands - 1) * self.get_chicot_count(),
+            _ => self.data.starting_hands,
+        };
+
+        if let Boss(TheManacle) = blind_type {
+            self.data.hand_size += self.get_chicot_count() - 1
+        }
+
+        let blind = Blind {
+            chips: 0.,
+            mult: 0.,
+            blind_type,
+            requirement,
+            hands,
+            discards,
+        };
+
+        self.joker_event(Event::BlindEntered, &mut (), |joker, _, _| {
+            joker.blind_entered()
+        });
+
+        self.game_state = GameState::Blind(blind);
+    }
+
     pub fn get_chicot_count(&self) -> u32 {
         self.jokers
             .iter()
@@ -143,17 +190,12 @@ impl Run {
             .into_iter()
             .for_each(|(idx, mut callback)| callback(idx, self));
     }
-    pub fn enter_blind(&mut self, blind: Blind) {
-        self.joker_event(Event::BlindEntered, &mut (), |joker, _, _| {
-            joker.blind_entered()
-        });
 
-        self.game_state = GameState::Blind(blind);
-    }
+    pub fn hand_played(&mut self, blind: &mut Blind, mut event: HandPlayedEventData) {
+        blind.hand_played(&mut self.data, &mut event);
 
-    pub fn hand_played(&mut self, mut event: HandPlayedEventData) {
         self.joker_event(Event::Scored, &mut event, |joker, data, event| {
-            joker.scored(data, event)
+            joker.scored(data, blind, event)
         });
     }
 }

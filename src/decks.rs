@@ -1,5 +1,5 @@
 ﻿use crate::{
-    blind::{Blind, BlindType},
+    blind::BlindType,
     card::{Card, Suit::*, ALPHABETICAL_RANK_ORDER, ALPHABETICAL_SUIT_ORDER},
     consumable::{Consumable, Consumable::SpectralCard, Spectral::Hex, Tarot},
     game_state::GameState,
@@ -134,6 +134,6 @@ impl DeckType {
             jokers: Vec::new(),
             game_state: GameState::Shop,
         }
-        .also_mut(|run| Blind::new(run, BlindType::Small))
+        .also_mut(|run| run.new_blind(BlindType::Small))
     }
 }
