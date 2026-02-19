@@ -7,12 +7,17 @@ use crate::{
     },
     card::Card,
     consumable::Consumable,
+    controller::{
+        BlindAction, BlindSelectionAction, CashoutAction, Controller, ShopAction, SimulationResult,
+    },
     decks::DeckType,
     event::Event,
     event_list::HandPlayedEventData,
     game_state::GameState,
-    hands::HandType,
-    joker::{Joker, JokerType::Chicot, PostExecCb},
+    hands::{Hand, HandType},
+    joker::{Joker, JokerType::Chicot},
+    misc,
+    seeding::{shuffle, BalatroRng},
     stake::{
         Stake,
         Stake::{Green, Purple},
@@ -20,7 +25,7 @@ use crate::{
     vouchers::Voucher,
 };
 use itertools::Itertools;
-use std::{cmp::max, collections::HashMap, ops::Not};
+use std::{cmp::max, mem::take, ops::Not};
 use strum::EnumCount;
 use Voucher::*;
 
@@ -32,8 +37,7 @@ pub struct Run {
 
 pub struct RunData {
     pub stake: Stake,
-    pub hashed_seed: f64,
-    pub seed: String,
+    pub rng: BalatroRng,
     pub cards: Vec<Card>,
     pub deck_type: DeckType,
     pub joker_slots: usize,
@@ -46,8 +50,9 @@ pub struct RunData {
     pub hand_size: u32,
     pub ante: i32,
     pub times_played: [u32; HandType::COUNT],
+    pub base_chips: [u64; HandType::COUNT],
+    pub base_mult: [u64; HandType::COUNT],
     pub hand_levels: [u32; HandType::COUNT],
-    pub pseudorandom_state: HashMap<String, f64>,
 }
 
 pub static BLIND_REQUIREMENTS: [[f64; 3]; 9] = [
@@ -152,18 +157,38 @@ impl Run {
             self.data.hand_size += self.get_chicot_count() - 1
         }
 
-        let blind = Blind {
+        let mut cards = (0..self.data.cards.len()).rev().collect_vec();
+        shuffle(
+            &mut cards,
+            self.data.rng.seed(&format!("nr{}", self.data.ante)),
+        );
+
+        let mut blind = Blind {
             chips: 0.,
-            mult: 0.,
+            mult: 1.,
+            score: 0.,
+            cards,
+            held: Vec::new(),
+            selected: Hand::default(),
             blind_type,
             requirement,
             hands,
             discards,
         };
 
-        self.joker_event(Event::BlindEntered, &mut (), |joker, _, _| {
-            joker.blind_entered()
-        });
+        blind.draw(&self.data);
+
+        let event = Event::BlindEntered;
+        let event_usize = event as usize;
+
+        self.jokers
+            .iter_mut()
+            .enumerate()
+            .sorted_by_key(|(_, joker)| joker.dispatcher_order.events[event_usize])
+            .filter_map(|(idx, joker)| joker.blind_entered().map(|cb| (idx, cb)))
+            .collect_vec()
+            .into_iter()
+            .for_each(|(idx, mut callback)| callback(idx, self));
 
         self.game_state = GameState::Blind(blind);
     }
@@ -175,27 +200,107 @@ impl Run {
             .count() as _
     }
 
-    fn joker_event<F, T>(&mut self, event: Event, t: &mut T, mut f: F)
-    where
-        F: FnMut(&mut Joker, &mut RunData, &mut T) -> Option<PostExecCb>,
-    {
-        let event_usize = event as usize;
+    pub fn simulate(mut self, mut controller: impl Controller) -> SimulationResult {
+        loop {
+            type Callback = Box<dyn FnMut(&mut Run)>;
+            let mut cbs: Vec<Callback> = Vec::new();
 
-        self.jokers
-            .iter_mut()
-            .enumerate()
-            .sorted_by_key(|(_, joker)| joker.dispatcher_order.events[event_usize])
-            .filter_map(|(idx, joker)| f(joker, &mut self.data, t).map(|cb| (idx, cb)))
-            .collect_vec()
-            .into_iter()
-            .for_each(|(idx, mut callback)| callback(idx, self));
-    }
+            match &mut self.game_state {
+                GameState::Shop => {
+                    for action in controller.shop() {
+                        match action {
+                            ShopAction::ExitShop => {
+                                self.game_state = GameState::BlindSelection;
+                            }
+                        }
+                    }
+                }
+                GameState::BlindSelection => match controller.blind_selection() {
+                    BlindSelectionAction::PlayBlind => {
+                        self.new_blind(Small);
+                    }
+                },
+                GameState::Blind(blind) => {
+                    if blind.hands == 0 || blind.held.is_empty() {
+                        return SimulationResult::Lost { blind: take(blind) };
+                    }
 
-    pub fn hand_played(&mut self, blind: &mut Blind, mut event: HandPlayedEventData) {
-        blind.hand_played(&mut self.data, &mut event);
+                    for action in controller.blind() {
+                        match action {
+                            BlindAction::SelectCard(card) => {
+                                blind.select(card);
+                            }
+                            BlindAction::Discard => {
+                                if blind.discard().is_some() {
+                                    todo!()
+                                }
+                            }
+                            BlindAction::Play => {
+                                let Some(hand) = blind.prepare_play(&self.data) else {
+                                    continue;
+                                };
 
-        self.joker_event(Event::Scored, &mut event, |joker, data, event| {
-            joker.scored(data, blind, event)
-        });
+                                let mut event_data = HandPlayedEventData {
+                                    hand,
+                                    allowed: true,
+                                };
+
+                                blind.hand_played(&mut self.data, &mut event_data);
+
+                                let cards = event_data.hand.resolve(&self.data.cards).0;
+                                println!("Played {}", cards.iter().join(", "));
+
+                                for card in cards {
+                                    blind.score += card.chips as f64;
+                                }
+
+                                let event_usize = Event::Scored as usize;
+                                cbs = self
+                                    .jokers
+                                    .iter_mut()
+                                    .enumerate()
+                                    .sorted_by_key(|(_, joker)| {
+                                        joker.dispatcher_order.events[event_usize]
+                                    })
+                                    .map_while(|(idx, joker)| {
+                                        event_data.allowed.then(|| {
+                                            joker
+                                                .scored(&mut self.data, blind, &mut event_data)
+                                                .map(|x| {
+                                                    Box::new(misc::curry_mut(x, idx)) as Callback
+                                                })
+                                        })
+                                    })
+                                    .flatten()
+                                    .collect_vec();
+
+                                blind.score += blind.chips * blind.mult;
+
+                                if event_data.allowed && blind.score >= blind.requirement {
+                                    if blind.blind_type.boss() {
+                                        if self.data.ante == 8 {
+                                            return SimulationResult::Won;
+                                        }
+
+                                        self.data.ante += 1;
+                                    }
+
+                                    cbs.push(Box::new(|run| run.game_state = GameState::CashOut))
+                                }
+                            }
+                        }
+                    }
+                }
+                GameState::CashOut => match controller.cashout() {
+                    CashoutAction::ReturnToShop => {
+                        self.game_state = GameState::Shop;
+                    }
+                },
+            };
+
+            for mut cb in cbs {
+                cb(&mut self);
+            }
+        }
     }
 }

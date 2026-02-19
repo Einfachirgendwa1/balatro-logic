@@ -5,8 +5,11 @@
     },
     hands::HandType::*,
 };
+use itertools::Itertools;
+use std::mem::MaybeUninit;
 use strum::{EnumCount, EnumIter, IntoEnumIterator};
 
+#[derive(Debug, Clone, Default)]
 pub struct Hand {
     pub cards: [usize; 5],
     pub len: usize,
@@ -15,8 +18,12 @@ pub struct Hand {
 pub struct ResolvedHand<'a>(pub Vec<&'a Card>);
 
 impl Hand {
+    pub fn card_slice(&self) -> &[usize] {
+        &self.cards[..self.len]
+    }
+
     pub fn resolve<'a>(&self, cards: &'a [Card]) -> ResolvedHand<'a> {
-        ResolvedHand(self.cards.iter().map(|idx| &cards[*idx]).collect())
+        ResolvedHand(self.card_slice().iter().map(|idx| &cards[*idx]).collect())
     }
 }
 
@@ -93,4 +100,45 @@ pub enum HandType {
     FiveOfAKind,
     FlushHouse,
     FlushFive,
+}
+
+impl HandType {
+    fn gen_values<T: Default>(f: impl Fn(HandType) -> T) -> [T; HandType::COUNT] {
+        let mut array = [const { MaybeUninit::uninit() }; HandType::COUNT];
+        for (idx, hand_type) in HandType::iter().enumerate() {
+            array[idx] = MaybeUninit::new(f(hand_type));
+        }
+
+        array.map(|elem| unsafe { elem.assume_init() })
+    }
+
+    pub fn base_chips() -> [u64; HandType::COUNT] {
+        Self::gen_values(|hand| match hand {
+            HighCard => 5,
+            Pair => 10,
+            TwoPair => 20,
+            ThreeOfAKind | Straight => 30,
+            Flush => 35,
+            FullHouse => 40,
+            FourOfAKind => 60,
+            StraightFlush => 100,
+            FiveOfAKind => 120,
+            FlushHouse => 140,
+            FlushFive => 160,
+        })
+    }
+
+    pub fn base_mult() -> [u64; HandType::COUNT] {
+        Self::gen_values(|hand| match hand {
+            HighCard => 1,
+            Pair | TwoPair => 2,
+            ThreeOfAKind => 3,
+            Straight | Flush | FullHouse => 4,
+            FourOfAKind => 7,
+            StraightFlush => 8,
+            FiveOfAKind => 12,
+            FlushHouse => 14,
+            FlushFive => 16,
+        })
+    }
 }

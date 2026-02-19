@@ -1,6 +1,9 @@
 ﻿use crate::blind::Blind;
 
+#[derive(Debug)]
 pub enum GameState {
-    Blind(Blind),
     Shop,
+    BlindSelection,
+    Blind(Blind),
+    CashOut,
 }

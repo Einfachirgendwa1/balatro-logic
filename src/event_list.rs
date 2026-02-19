@@ -6,7 +6,7 @@
 
 pub struct HandPlayedEventData {
     pub hand: Hand,
-    pub not_allowed: Box<dyn FnMut()>,
+    pub allowed: bool,
 }
 
 pub struct CardScoredEventData<'a> {

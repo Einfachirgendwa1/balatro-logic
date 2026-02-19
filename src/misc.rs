@@ -35,3 +35,11 @@ pub trait UnpackedMap<A, B>: Iterator<Item = (A, B)> + Sized {
         self.map(move |(a, b)| func(a, b))
     }
 }
+
+pub fn curry_mut<F, P1, P2, R>(mut f: F, p1: P1) -> impl for<'a> FnMut(&'a mut P2) -> R
+where
+    P1: Clone + Copy + 'static,
+    F: FnMut(P1, &mut P2) -> R + 'static,
+{
+    move |p2| f(p1, p2)
+}

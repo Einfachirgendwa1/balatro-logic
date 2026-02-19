@@ -7,12 +7,12 @@ use strum::{EnumCount, EnumIter};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Card {
-    pub(crate) rank: Rank,
-    pub(crate) suit: Suit,
-    pub(crate) enhancement: Enhancement,
-    pub(crate) edition: Edition,
-    pub(crate) seal: Seal,
-    pub(crate) chips: u32,
+    pub rank: Rank,
+    pub suit: Suit,
+    pub enhancement: Enhancement,
+    pub edition: Edition,
+    pub seal: Seal,
+    pub chips: u32,
 }
 
 impl Card {

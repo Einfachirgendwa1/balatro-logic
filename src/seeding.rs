@@ -1,6 +1,5 @@
-﻿use crate::run::RunData;
-use rand::{prelude::*, rng};
-use std::{f64::consts::PI, iter::repeat_with};
+﻿use rand::{prelude::*, rng};
+use std::{collections::HashMap, f64::consts::PI, iter::repeat_with};
 
 mod math {
     use mlua::{Function, Lua, Table};
@@ -56,6 +55,7 @@ pub fn random_seed() -> String {
     .collect()
 }
 
+#[inline]
 pub const fn hash(s: &[u8]) -> f64 {
     let mut num = 1.;
     let mut i = s.len();
@@ -85,7 +85,34 @@ pub fn random_element<T>(list: &[T], seed: f64) -> &'_ T {
     &list[math::random_idx(list.len())]
 }
 
-impl RunData {
+pub struct BalatroRng {
+    pub seed: String,
+    pub hashed_seed: f64,
+    pub pseudorandom_state: HashMap<String, f64>,
+}
+
+impl BalatroRng {
+    pub fn new(seed: String) -> BalatroRng {
+        BalatroRng {
+            hashed_seed: hash(seed.as_bytes()),
+            seed,
+            pseudorandom_state: HashMap::new(),
+        }
+    }
+
+    #[inline]
+    pub fn new_randomseed() -> BalatroRng {
+        BalatroRng::new(random_seed())
+    }
+
+    #[inline]
+    pub fn seed_one(&self, key: &str) -> f64 {
+        let hashed = hash(format!("{key}{}", self.seed).as_bytes());
+        let value = (((2.134453429141 + hashed * 1.72431234) % 1.) * 1e13).round() / 1e13;
+
+        (value + self.hashed_seed) / 2.0
+    }
+
     pub fn seed(&mut self, key: &str) -> f64 {
         let value = self
             .pseudorandom_state
