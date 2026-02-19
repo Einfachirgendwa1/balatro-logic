@@ -68,6 +68,10 @@ pub static BLIND_REQUIREMENTS: [[f64; 3]; 9] = [
 ];
 
 impl RunData {
+    pub fn resolve(&self, cards: &[usize]) -> Vec<&Card> {
+        cards.iter().map(|idx| &self.cards[*idx]).collect()
+    }
+
     pub fn base_chip_requirement(&self) -> f64 {
         let idx = match self.stake {
             stake if stake >= Purple => 2,
@@ -157,7 +161,7 @@ impl Run {
             self.data.hand_size += self.get_chicot_count() - 1
         }
 
-        let mut cards = (0..self.data.cards.len()).rev().collect_vec();
+        let mut cards = (0..self.data.cards.len()).collect_vec();
         shuffle(
             &mut cards,
             self.data.rng.seed(&format!("nr{}", self.data.ante)),
@@ -225,11 +229,9 @@ impl Run {
                         return SimulationResult::Lost { blind: take(blind) };
                     }
 
-                    for action in controller.blind() {
+                    for action in controller.blind(blind, &mut self.data) {
                         match action {
-                            BlindAction::SelectCard(card) => {
-                                blind.select(card);
-                            }
+                            BlindAction::SelectCard(card) => blind.select(card),
                             BlindAction::Discard => {
                                 if blind.discard().is_some() {
                                     todo!()
@@ -274,9 +276,14 @@ impl Run {
                                     .flatten()
                                     .collect_vec();
 
+                                if !event_data.allowed {
+                                    continue;
+                                }
+
+                                blind.draw(&self.data);
                                 blind.score += blind.chips * blind.mult;
 
-                                if event_data.allowed && blind.score >= blind.requirement {
+                                if blind.score >= blind.requirement {
                                     if blind.blind_type.boss() {
                                         if self.data.ante == 8 {
                                             return SimulationResult::Won;

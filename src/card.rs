@@ -1,7 +1,8 @@
 ﻿use crate::card::{Enhancement::WildCard, Rank::*, Suit::*};
 use std::{
     cmp::Ordering,
-    fmt::{Debug, Display, Formatter},
+    fmt::{Debug, Display, Formatter}
+    ,
 };
 use strum::{EnumCount, EnumIter};
 
@@ -101,7 +102,7 @@ pub struct MultiSuit {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
-pub(crate) enum Enhancement {
+pub enum Enhancement {
     None,
     BonusCard,
     MultCard,
@@ -115,7 +116,7 @@ pub(crate) enum Enhancement {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
-pub(crate) enum Edition {
+pub enum Edition {
     Base,
     Foil,
     Holographic,
@@ -124,7 +125,7 @@ pub(crate) enum Edition {
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
-pub(crate) enum Seal {
+pub enum Seal {
     None,
     Gold,
     Red,

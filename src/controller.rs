@@ -1,4 +1,4 @@
-﻿use crate::blind::Blind;
+﻿use crate::{blind::Blind, run::RunData};
 
 pub enum ShopAction {
     ExitShop,
@@ -20,7 +20,7 @@ pub enum CashoutAction {
 pub trait Controller {
     fn shop(&mut self) -> Vec<ShopAction>;
     fn blind_selection(&mut self) -> BlindSelectionAction;
-    fn blind(&mut self) -> Vec<BlindAction>;
+    fn blind(&mut self, blind: &mut Blind, data: &mut RunData) -> Vec<BlindAction>;
     fn cashout(&mut self) -> CashoutAction;
 }
 

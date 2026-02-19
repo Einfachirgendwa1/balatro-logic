@@ -75,8 +75,9 @@ pub const fn hash(s: &[u8]) -> f64 {
 pub fn shuffle<T>(list: &mut [T], seed: f64) {
     math::randomseed(seed);
 
-    for i in (1..list.len()).rev() {
-        list.swap(i, math::random_idx(i));
+    for i in (1..=list.len()).rev() {
+        let j = math::random_idx(i);
+        list.swap(i - 1, j);
     }
 }
 
