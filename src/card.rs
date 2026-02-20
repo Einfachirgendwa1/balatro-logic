@@ -1,8 +1,7 @@
 ﻿use crate::card::{Enhancement::WildCard, Rank::*, Suit::*};
 use std::{
     cmp::Ordering,
-    fmt::{Debug, Display, Formatter}
-    ,
+    fmt::{Debug, Display, Formatter},
 };
 use strum::{EnumCount, EnumIter};
 
@@ -70,10 +69,10 @@ impl Display for Rank {
             Rank8 => write!(f, "8"),
             Rank9 => write!(f, "9"),
             Rank10 => write!(f, "10"),
-            Jack => write!(f, "Jack"),
-            Queen => write!(f, "Queen"),
-            King => write!(f, "King"),
-            Ace => write!(f, "Ace"),
+            Jack => write!(f, "J"),
+            Queen => write!(f, "Q"),
+            King => write!(f, "K"),
+            Ace => write!(f, "A"),
         }
     }
 }
@@ -83,12 +82,23 @@ pub static ALPHABETICAL_RANK_ORDER: [Rank; Rank::COUNT] = [
 ];
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, EnumCount, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, EnumCount, EnumIter)]
 pub enum Suit {
     Spade,
     Heart,
     Club,
     Diamond,
+}
+
+impl Display for Suit {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Spade => write!(f, "♠"),
+            Heart => write!(f, "♥"),
+            Club => write!(f, "♣"),
+            Diamond => write!(f, "♦"),
+        }
+    }
 }
 
 pub static ALPHABETICAL_SUIT_ORDER: [Suit; Suit::COUNT] = [Club, Diamond, Heart, Spade];
@@ -153,7 +163,7 @@ impl Display for Card {
             write!(f, "{:?}", self.enhancement)?;
         }
 
-        write!(f, "{} of {:?}s", self.rank, self.suit)
+        write!(f, "{} {}", self.suit, self.rank)
     }
 }
 
