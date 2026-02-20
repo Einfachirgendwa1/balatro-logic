@@ -2,7 +2,7 @@
     blind::Blind,
     card::{
         Card,
-        Rank::{Queen, Rank2, Rank7, Rank8, Rank9, Rank10},
+        Rank::{Queen, Rank2, Rank7, Rank8, Rank10},
         Suit::{Club, Diamond, Heart, Spade},
     },
     controller::{BlindAction, Controller, SimulationResult},
@@ -33,7 +33,6 @@ fn initial_draw() {
                     &Card::new(Diamond, Queen),
                     &Card::new(Club, Queen),
                     &Card::new(Heart, Rank10),
-                    &Card::new(Club, Rank9),
                     &Card::new(Spade, Rank8),
                     &Card::new(Diamond, Rank7),
                     &Card::new(Diamond, Rank2),
