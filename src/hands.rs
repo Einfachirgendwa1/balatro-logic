@@ -5,11 +5,10 @@
     },
     hands::HandType::*,
 };
-use itertools::Itertools;
 use std::mem::MaybeUninit;
 use strum::{EnumCount, EnumIter, IntoEnumIterator};
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, Clone, Default, PartialEq)]
 pub struct Hand {
     pub cards: [usize; 5],
     pub len: usize,

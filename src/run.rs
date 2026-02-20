@@ -17,17 +17,17 @@ use crate::{
     hands::{Hand, HandType},
     joker::{Joker, JokerType::Chicot},
     misc,
-    seeding::{shuffle, BalatroRng},
+    seeding::{BalatroRng, shuffle},
     stake::{
         Stake,
         Stake::{Green, Purple},
     },
     vouchers::Voucher,
 };
+use Voucher::*;
 use itertools::Itertools;
 use std::{cmp::max, mem::take, ops::Not};
 use strum::EnumCount;
-use Voucher::*;
 
 pub struct Run {
     pub data: RunData,
@@ -295,6 +295,7 @@ impl Run {
                                     cbs.push(Box::new(|run| run.game_state = GameState::CashOut))
                                 }
                             }
+                            BlindAction::Abort => return SimulationResult::Aborted,
                         }
                     }
                 }

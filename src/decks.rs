@@ -1,22 +1,22 @@
 ﻿use crate::{
     blind::BlindType,
-    card::{Card, Suit::*, ALPHABETICAL_RANK_ORDER, ALPHABETICAL_SUIT_ORDER},
+    card::{ALPHABETICAL_RANK_ORDER, ALPHABETICAL_SUIT_ORDER, Card, Suit::*},
     consumable::{Consumable, Consumable::SpectralCard, Spectral::Hex, Tarot},
     game_state::GameState,
     hands::HandType,
     misc::{Also, UnpackedMap},
     run::{Run, RunData},
-    seeding::{random_element, random_seed, BalatroRng},
+    seeding::{BalatroRng, random_element, random_seed},
     stake::Stake,
     vouchers::Voucher,
 };
-use itertools::Itertools;
-use std::sync::LazyLock;
-use strum::{EnumCount, EnumIter};
 use Consumable::TarotCard;
 use DeckType::*;
 use Tarot::TheFool;
 use Voucher::*;
+use itertools::Itertools;
+use std::sync::LazyLock;
+use strum::{EnumCount, EnumIter};
 
 pub static DEFAULT_CARDS: LazyLock<Vec<Card>> = LazyLock::new(|| {
     ALPHABETICAL_SUIT_ORDER
@@ -141,8 +141,12 @@ impl DeckType {
 
     #[must_use]
     pub fn gen_erratic(rng: &mut BalatroRng) -> Vec<Card> {
+        let default_cards_sort_id = DEFAULT_CARDS.iter().enumerate().collect_vec();
+
         (0..52)
-            .map(|_| random_element(&DEFAULT_CARDS, rng.seed("erratic")).clone())
+            .map(|_| random_element(&default_cards_sort_id, rng.seed("erratic")))
+            .sorted_by_key(|(sort_id, _)| sort_id)
+            .map(|(_, card)| (*card).clone())
             .collect()
     }
 

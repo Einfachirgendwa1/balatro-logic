@@ -6,7 +6,7 @@
 };
 use strum::EnumCount;
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub struct Blind {
     pub chips: f64,
     pub mult: f64,
@@ -20,7 +20,7 @@ pub struct Blind {
     pub discards: u32,
 }
 
-#[derive(Debug, Default)]
+#[derive(Debug, Default, PartialEq)]
 pub enum BlindType {
     #[default]
     Small,
@@ -35,7 +35,7 @@ impl BlindType {
     }
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum BossBlindType {
     TheHook,
     TheOx,
@@ -66,7 +66,7 @@ pub enum BossBlindType {
     TheMark,
 }
 
-#[derive(Debug)]
+#[derive(Debug, PartialEq)]
 pub enum ShowdownBossBlindType {
     AmberAcorn,
     VerdantLeaf,
@@ -102,7 +102,7 @@ impl Blind {
     }
 
     pub fn draw(&mut self, data: &RunData) {
-        for _ in self.held.len()..=data.hand_size as usize {
+        for _ in self.held.len()..data.hand_size as usize {
             let Some(card) = self.cards.pop() else {
                 return;
             };
