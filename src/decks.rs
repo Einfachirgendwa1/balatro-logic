@@ -52,6 +52,7 @@ pub enum DeckType {
 }
 
 impl Deck {
+    #[must_use]
     pub fn sorted(&self) -> Vec<&'_ Card> {
         let mut vec = self.cards.iter().collect::<Vec<&_>>();
         vec.sort_by(|a, b| a.cmp(b).reverse());
@@ -60,6 +61,7 @@ impl Deck {
 }
 
 impl DeckType {
+    #[must_use]
     pub fn new_run(self, seed: String, stake: Stake) -> Run {
         let mut rng = BalatroRng::new(seed);
 
