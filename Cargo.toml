@@ -4,11 +4,9 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-const-default = "1.0.0"
-const-default-derive = "0.2.0"
 itertools = "0.14.0"
 mlua = { version = "0.11.6", features = ["luajit", "vendored"] }
+num-derive = "0.4.2"
+num-traits = "0.2.19"
 rand = "0.10.0"
-rayon = "1.11.0"
-ryu = "1.0.23"
 strum = { version = "0.27.2", features = ["strum_macros", "derive"] }

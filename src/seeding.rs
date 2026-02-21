@@ -1,4 +1,5 @@
-﻿use rand::{prelude::*, rng};
+﻿use crate::misc::Also;
+use rand::{prelude::*, rng};
 use std::{collections::HashMap, f64::consts::PI, iter::repeat_with};
 
 mod math {
@@ -82,8 +83,12 @@ pub fn shuffle<T>(list: &mut [T], seed: f64) {
 }
 
 pub fn random_element<T>(list: &[T], seed: f64) -> &'_ T {
+    &list[random_idx(list, seed)]
+}
+
+pub fn random_idx<T>(list: &[T], seed: f64) -> usize {
     math::randomseed(seed);
-    &list[math::random_idx(list.len())]
+    math::random_idx(list.len())
 }
 
 pub struct BalatroRng {
@@ -93,6 +98,8 @@ pub struct BalatroRng {
 }
 
 impl BalatroRng {
+    #[inline]
+    #[must_use]
     pub fn new(seed: String) -> BalatroRng {
         BalatroRng {
             hashed_seed: hash(seed.as_bytes()),
@@ -102,11 +109,13 @@ impl BalatroRng {
     }
 
     #[inline]
+    #[must_use]
     pub fn new_randomseed() -> BalatroRng {
         BalatroRng::new(random_seed())
     }
 
     #[inline]
+    #[must_use]
     pub fn seed_one(&self, key: &str) -> f64 {
         let hashed = hash(format!("{key}{}", self.seed).as_bytes());
         let value = (((2.134453429141 + hashed * 1.72431234) % 1.) * 1e13).round() / 1e13;
@@ -121,7 +130,6 @@ impl BalatroRng {
             .or_insert_with_key(|key| hash(format!("{key}{}", self.seed).as_bytes()));
 
         *value = (((2.134453429141 + *value * 1.72431234) % 1.) * 1e13).round() / 1e13;
-
         (*value + self.hashed_seed) / 2.0
     }
 }

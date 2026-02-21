@@ -1,7 +1,8 @@
-﻿use strum::{EnumCount, EnumIter};
+﻿use num_derive::FromPrimitive;
+use strum::{EnumCount, EnumIter};
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
 pub enum Voucher {
     Overstock,
     OverstockPlus,
@@ -35,4 +36,12 @@ pub enum Voucher {
     Retcon,
     PaintBrush,
     Palette,
+}
+
+impl Voucher {
+    #[inline]
+    #[must_use]
+    pub fn requirements_fulfilled(self, voucher_list: &[bool; Voucher::COUNT]) -> bool {
+        (self as usize).is_multiple_of(2) || voucher_list[self as usize - 1]
+    }
 }

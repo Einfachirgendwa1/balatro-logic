@@ -18,6 +18,7 @@ use crate::{
     joker::{Joker, JokerType::Chicot},
     misc,
     seeding::{BalatroRng, shuffle},
+    shop::Shop,
     stake::{
         Stake,
         Stake::{Green, Purple},
@@ -38,6 +39,7 @@ pub struct Run {
 pub struct RunData {
     pub stake: Stake,
     pub rng: BalatroRng,
+    pub shop: Shop,
     pub cards: Vec<Card>,
     pub deck_type: DeckType,
     pub joker_slots: usize,
@@ -105,21 +107,16 @@ impl RunData {
             .not()
     }
 
-    pub(crate) fn apply_voucher_effects(&mut self, voucher: Voucher) {
-        if cfg!(debug_assertions) {
-            assert!(!self.vouchers[voucher as usize]);
-
-            if voucher as u8 % 2 == 1 {
-                assert!(self.vouchers[voucher as usize - 1]);
-            }
-        }
-
+    pub fn apply_voucher_effects(&mut self, voucher: Voucher) {
         self.vouchers[voucher as usize] = true;
+
         match voucher {
             CrystalBall => self.consumable_slots += 1,
             Grabber | NachoTong => self.starting_hands += 1,
             Wasteful | Recyclomancy => self.starting_discards += 1,
             PaintBrush | Palette => self.hand_size += 1,
+            RerollSurplus | RerollGlut => self.shop.reroll_price -= 2.,
+            ClearanceSale | Liquidation => self.shop.price_multiplier -= 0.25,
             Antimatter => self.joker_slots += 1,
             Hieroglyph => {
                 self.ante -= 1;
@@ -129,6 +126,11 @@ impl RunData {
                 self.ante -= 1;
                 self.starting_discards -= 1;
             }
+            MagicTrick => self.shop.playing_card_weight = 4.,
+            TarotMerchant => self.shop.tarot_weight = 9.6,
+            PlanetMerchant => self.shop.planet_weight = 9.6,
+            TarotTycoon => self.shop.tarot_weight = 32.,
+            PlanetTycoon => self.shop.planet_weight = 32.,
             _ => {}
         }
     }

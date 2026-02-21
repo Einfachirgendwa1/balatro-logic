@@ -7,6 +7,7 @@
     misc::{Also, UnpackedMap},
     run::{Run, RunData},
     seeding::{BalatroRng, random_element, random_seed},
+    shop::Shop,
     stake::Stake,
     vouchers::Voucher,
 };
@@ -60,19 +61,19 @@ impl Deck {
     }
 }
 
-impl DeckType {
+impl Run {
     #[must_use]
-    pub fn new_run(self, seed: String, stake: Stake) -> Run {
+    pub fn new(deck_type: DeckType, stake: Stake, seed: String) -> Run {
         let mut rng = BalatroRng::new(seed);
 
-        let cards = match self {
+        let cards = match deck_type {
             Erratic => Self::gen_erratic(&mut rng),
             _ => DEFAULT_CARDS.clone(),
         };
 
         let mut data = RunData {
             rng,
-            deck_type: self,
+            deck_type,
             cards,
             base_chips: HandType::base_chips(),
             base_mult: HandType::base_mult(),
@@ -88,9 +89,10 @@ impl DeckType {
             starting_discards: if stake >= Stake::Blue { 2 } else { 3 },
             times_played: [0; 12],
             hand_levels: [1; 12],
+            shop: Shop::default(),
         };
 
-        match self {
+        match deck_type {
             Red => data.starting_discards += 1,
             Blue => data.starting_hands += 1,
             Yellow => data.money += 10,
@@ -109,7 +111,7 @@ impl DeckType {
             }
             Ghost => {
                 data.consumables.push(SpectralCard(Hex));
-                todo!()
+                data.shop.spectral_card_weight = 2.;
             }
             Zodiac => {
                 data.apply_voucher_effects(TarotMerchant);
@@ -153,7 +155,7 @@ impl DeckType {
     }
 
     #[must_use]
-    pub fn new_run_random_seed(self, stake: Stake) -> Run {
-        Self::new_run(self, random_seed(), stake)
+    pub fn new_with_random_seed(deck_type: DeckType, stake: Stake) -> Run {
+        Self::new(deck_type, stake, random_seed())
     }
 }
