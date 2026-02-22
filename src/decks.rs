@@ -7,7 +7,7 @@
     misc::{Also, UnpackedMap},
     run::{Run, RunData},
     seeding::{BalatroRng, random_element, random_seed},
-    shop::Shop,
+    shop::{Shop, ShopItemType},
     stake::Stake,
     vouchers::Voucher,
 };
@@ -111,7 +111,7 @@ impl Run {
             }
             Ghost => {
                 data.consumables.push(SpectralCard(Hex));
-                data.shop.spectral_card_weight = 2.;
+                data.shop.weights[ShopItemType::SpectralCard as usize] = 2.;
             }
             Zodiac => {
                 data.apply_voucher_effects(TarotMerchant);
@@ -135,12 +135,8 @@ impl Run {
             _ => {}
         }
 
-        Run {
-            data,
-            jokers: Vec::new(),
-            game_state: GameState::Shop,
-        }
-        .also_mut(|run| run.new_blind(BlindType::Small))
+        Run { data, jokers: Vec::new(), game_state: GameState::Shop }
+            .also_mut(|run| run.new_blind(BlindType::Small))
     }
 
     #[must_use]

@@ -1,6 +1,34 @@
-﻿use crate::{run::RunData, seeding::random_idx, vouchers::Voucher};
+﻿use crate::{
+    card::Card,
+    consumable::Consumable,
+    hands::HandType::FlushFive,
+    joker::{COMMON_JOKERS, Joker, JokerType, RARE_JOKERS, UNCOMMON_JOKERS},
+    pools::JokerRarity::{Common, Rare, Uncommon},
+    run::RunData,
+    seeding::{math, random_idx},
+    shop::ShopItemType,
+    vouchers::Voucher,
+};
+use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use strum::{EnumCount, IntoEnumIterator};
+use strum::{EnumCount, EnumIter, IntoEnumIterator};
+
+#[repr(u8)]
+#[derive(Debug, Clone, PartialEq, EnumCount)]
+pub enum ShopItem {
+    Consumable(Consumable),
+    Joker(Joker),
+    PlayingCard(Card),
+}
+
+#[repr(u8)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
+pub enum JokerRarity {
+    Common,
+    Uncommon,
+    Rare,
+    Legendary,
+}
 
 impl RunData {
     pub fn available_vouchers(&self) -> [bool; Voucher::COUNT] {
@@ -21,21 +49,71 @@ impl RunData {
         v
     }
 
-    pub fn poll_next_voucher(&mut self, ante: u32) -> Voucher {
-        let available = self.available_vouchers();
+    fn available_jokers(&self, rarity_pool: &[JokerType]) -> Vec<bool> {
+        rarity_pool.iter().map(|_| true).collect()
+    }
 
-        let seed = self.rng.seed(&format!("Voucher{ante}"));
+    fn poll(&mut self, pool: &[bool], pool_key: &str) -> usize {
+        let seed = self.rng.seed(pool_key);
 
-        let mut idx = random_idx(&available, seed);
+        let mut idx = random_idx(pool, seed);
         let mut i = 1;
 
-        while !available[idx] {
+        while !pool[idx] {
             i += 1;
 
-            let seed = self.rng.seed(&format!("Voucher{ante}_resample{i}"));
-            idx = random_idx(&available, seed);
+            let seed = self.rng.seed(&format!("{pool_key}_resample{i}"));
+            idx = random_idx(pool, seed);
         }
 
+        idx
+    }
+
+    pub fn poll_next_voucher(&mut self) -> Voucher {
+        let available = self.available_vouchers();
+        let pool_key = format!("Voucher{}", self.ante);
+
+        let idx = self.poll(&available, &pool_key);
         Voucher::from_usize(idx).unwrap()
+    }
+
+    fn poll_next_joker(&mut self, key: &str) -> JokerType {
+        let seed = self.rng.seed(&format!("rarity{}{key}", self.ante));
+        math::randomseed(seed);
+
+        let (rarity, pool) = match math::random() {
+            seed if seed > 0.95 => (Rare, &RARE_JOKERS as &[JokerType]),
+            seed if seed > 0.7 => (Uncommon, &UNCOMMON_JOKERS as _),
+            _ => (Common, &COMMON_JOKERS as _),
+        };
+
+        let available = self.available_jokers(pool);
+        let pool_key = format!("Joker{}{key}{}", rarity as u8 + 1, self.ante);
+
+        let pool_idx = self.poll(&available, &pool_key);
+        pool[pool_idx]
+    }
+
+    pub fn poll_next_shop_item(&mut self) -> ShopItem {
+        let total_weight: f64 = self.shop.weights.iter().sum();
+        math::randomseed(self.rng.seed(&format!("cdt{}", self.ante)));
+        let polled_weight = math::random() * total_weight;
+
+        let mut check_weight = 0.;
+        for item_type in ShopItemType::iter() {
+            let weight = self.shop.weights[item_type as usize];
+            if check_weight < polled_weight && polled_weight < check_weight + weight {
+                return match item_type {
+                    ShopItemType::Joker => {
+                        ShopItem::Joker(self.poll_next_joker("sho").construct_joker())
+                    }
+                    _ => todo!(),
+                };
+            }
+
+            check_weight += weight;
+        }
+
+        ShopItem::Consumable(Consumable::PlanetCard(FlushFive))
     }
 }

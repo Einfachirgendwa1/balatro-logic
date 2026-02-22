@@ -2,7 +2,7 @@
 use rand::{prelude::*, rng};
 use std::{collections::HashMap, f64::consts::PI, iter::repeat_with};
 
-mod math {
+pub(crate) mod math {
     use mlua::{Function, Lua, Table};
     use std::cell::LazyCell;
 
@@ -22,21 +22,19 @@ mod math {
             }
         });
     }
+
     pub(crate) fn randomseed(seed: f64) {
         RNG.with(|rng| {
-            rng.lua_randomseed
-                .call::<()>(seed)
-                .expect("Call to math.randomseed failed!")
+            rng.lua_randomseed.call::<()>(seed).expect("Call to math.randomseed failed!")
         });
     }
 
+    pub(crate) fn random() -> f64 {
+        RNG.with(|rng| rng.lua_random.call::<f64>(()).expect("Call to math.random failed!"))
+    }
+
     pub(crate) fn random_idx(len: usize) -> usize {
-        RNG.with(|rng| {
-            rng.lua_random
-                .call::<usize>(len)
-                .expect("Call to math.random failed!")
-                - 1
-        })
+        RNG.with(|rng| rng.lua_random.call::<usize>(len).expect("Call to math.random failed!") - 1)
     }
 }
 
@@ -101,11 +99,7 @@ impl BalatroRng {
     #[inline]
     #[must_use]
     pub fn new(seed: String) -> BalatroRng {
-        BalatroRng {
-            hashed_seed: hash(seed.as_bytes()),
-            seed,
-            pseudorandom_state: HashMap::new(),
-        }
+        BalatroRng { hashed_seed: hash(seed.as_bytes()), seed, pseudorandom_state: HashMap::new() }
     }
 
     #[inline]
@@ -130,6 +124,6 @@ impl BalatroRng {
             .or_insert_with_key(|key| hash(format!("{key}{}", self.seed).as_bytes()));
 
         *value = (((2.134453429141 + *value * 1.72431234) % 1.) * 1e13).round() / 1e13;
-        (*value + self.hashed_seed) / 2.0
+        ((*value + self.hashed_seed) / 2.0).also(|val| println!("Seeding on `{key}` yields {val}"))
     }
 }

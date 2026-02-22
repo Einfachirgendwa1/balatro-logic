@@ -18,7 +18,10 @@ use crate::{
     joker::{Joker, JokerType::Chicot},
     misc,
     seeding::{BalatroRng, shuffle},
-    shop::Shop,
+    shop::{
+        Shop,
+        ShopItemType::{Planet, PlayingCard, Tarot},
+    },
     stake::{
         Stake,
         Stake::{Green, Purple},
@@ -126,11 +129,11 @@ impl RunData {
                 self.ante -= 1;
                 self.starting_discards -= 1;
             }
-            MagicTrick => self.shop.playing_card_weight = 4.,
-            TarotMerchant => self.shop.tarot_weight = 9.6,
-            PlanetMerchant => self.shop.planet_weight = 9.6,
-            TarotTycoon => self.shop.tarot_weight = 32.,
-            PlanetTycoon => self.shop.planet_weight = 32.,
+            MagicTrick => self.shop.weights[PlayingCard as usize] = 4.,
+            TarotMerchant => self.shop.weights[Tarot as usize] = 9.6,
+            PlanetMerchant => self.shop.weights[Planet as usize] = 8.6,
+            TarotTycoon => self.shop.weights[Tarot as usize] = 32.,
+            PlanetTycoon => self.shop.weights[Planet as usize] = 32.,
             _ => {}
         }
     }
@@ -164,10 +167,7 @@ impl Run {
         }
 
         let mut cards = (0..self.data.cards.len()).collect_vec();
-        shuffle(
-            &mut cards,
-            self.data.rng.seed(&format!("nr{}", self.data.ante)),
-        );
+        shuffle(&mut cards, self.data.rng.seed(&format!("nr{}", self.data.ante)));
 
         let mut blind = Blind {
             chips: 0.,
@@ -200,10 +200,7 @@ impl Run {
     }
 
     pub fn get_chicot_count(&self) -> u32 {
-        self.jokers
-            .iter()
-            .filter(|joker| joker.joker_type == Chicot)
-            .count() as _
+        self.jokers.iter().filter(|joker| joker.joker_type == Chicot).count() as _
     }
 
     pub fn simulate(mut self, mut controller: impl Controller) -> SimulationResult {
@@ -244,10 +241,7 @@ impl Run {
                                     continue;
                                 };
 
-                                let mut event_data = HandPlayedEventData {
-                                    hand,
-                                    allowed: true,
-                                };
+                                let mut event_data = HandPlayedEventData { hand, allowed: true };
 
                                 blind.hand_played(&mut self.data, &mut event_data);
 

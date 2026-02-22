@@ -11,7 +11,7 @@ pub enum Event {
     CardScoredDiamond,
 }
 
-#[derive(Default)]
+#[derive(Default, PartialEq, Debug, Copy, Clone)]
 pub struct DispatcherOrder {
     pub events: [i64; Event::COUNT],
 }

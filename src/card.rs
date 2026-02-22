@@ -5,7 +5,7 @@ use std::{
 };
 use strum::{EnumCount, EnumIter};
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Copy)]
 pub struct Card {
     pub rank: Rank,
     pub suit: Suit,
@@ -77,9 +77,8 @@ impl Display for Rank {
     }
 }
 
-pub static ALPHABETICAL_RANK_ORDER: [Rank; Rank::COUNT] = [
-    Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Ace, Jack, King, Queen, Rank10,
-];
+pub static ALPHABETICAL_RANK_ORDER: [Rank; Rank::COUNT] =
+    [Rank2, Rank3, Rank4, Rank5, Rank6, Rank7, Rank8, Rank9, Ace, Jack, King, Queen, Rank10];
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Hash, Eq, PartialOrd, Ord, EnumCount, EnumIter)]
@@ -175,10 +174,7 @@ impl PartialOrd for Card {
 
 impl Ord for Card {
     fn cmp(&self, other: &Self) -> Ordering {
-        self.suit
-            .cmp(&other.suit)
-            .reverse()
-            .then(self.rank.cmp(&other.rank))
+        self.suit.cmp(&other.suit).reverse().then(self.rank.cmp(&other.rank))
     }
 }
 
