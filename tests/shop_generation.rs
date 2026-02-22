@@ -33,16 +33,16 @@ fn vouchers() {
 
     run.data.ante = 1;
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , ..}) if joker_type == JokerType::Bull)
+        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bull)
     );
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , ..}) if joker_type == JokerType::FacelessJoker)
+        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::FacelessJoker)
     );
     run.data.poll_next_shop_item();
     assert_eq!(run.data.poll_next_shop_item(), ShopItem::Consumable(TarotCard(Tarot::TheSun)));
 
     run.data.ante = 2;
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , ..}) if joker_type == JokerType::Bloodstone)
+        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bloodstone)
     );
 }
