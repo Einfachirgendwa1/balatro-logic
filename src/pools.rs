@@ -1,6 +1,6 @@
 ﻿use crate::{
     card::Card,
-    consumable::Consumable,
+    consumable::{Consumable, Consumable::TarotCard, Tarot},
     hands::HandType::FlushFive,
     joker::{COMMON_JOKERS, Joker, JokerType, RARE_JOKERS, UNCOMMON_JOKERS},
     pools::JokerRarity::{Common, Rare, Uncommon},
@@ -53,6 +53,10 @@ impl RunData {
         rarity_pool.iter().map(|_| true).collect()
     }
 
+    fn available_tarots(&self) -> [bool; Tarot::COUNT] {
+        [true; Tarot::COUNT]
+    }
+
     fn poll(&mut self, pool: &[bool], pool_key: &str) -> usize {
         let seed = self.rng.seed(pool_key);
 
@@ -94,6 +98,14 @@ impl RunData {
         pool[pool_idx]
     }
 
+    fn poll_next_tarot(&mut self, key: &str) -> Tarot {
+        let available = self.available_tarots();
+        let pool_key = format!("Tarot{key}{}", self.ante);
+
+        let idx = self.poll(&available, &pool_key);
+        Tarot::from_usize(idx).unwrap()
+    }
+
     pub fn poll_next_shop_item(&mut self) -> ShopItem {
         let total_weight: f64 = self.shop.weights.iter().sum();
         math::randomseed(self.rng.seed(&format!("cdt{}", self.ante)));
@@ -106,6 +118,9 @@ impl RunData {
                 return match item_type {
                     ShopItemType::Joker => {
                         ShopItem::Joker(self.poll_next_joker("sho").construct_joker())
+                    }
+                    ShopItemType::Tarot => {
+                        ShopItem::Consumable(TarotCard(self.poll_next_tarot("sho")))
                     }
                     _ => todo!(),
                 };

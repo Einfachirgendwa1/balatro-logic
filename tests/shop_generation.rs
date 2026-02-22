@@ -1,4 +1,5 @@
 ﻿use balatro_logic::{
+    consumable::{Consumable::TarotCard, Tarot},
     decks::DeckType,
     joker::{Joker, JokerType},
     pools::ShopItem,
@@ -37,6 +38,9 @@ fn vouchers() {
     assert!(
         matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , ..}) if joker_type == JokerType::FacelessJoker)
     );
+    run.data.poll_next_shop_item();
+    assert_eq!(run.data.poll_next_shop_item(), ShopItem::Consumable(TarotCard(Tarot::TheSun)));
+
     run.data.ante = 2;
     assert!(
         matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , ..}) if joker_type == JokerType::Bloodstone)

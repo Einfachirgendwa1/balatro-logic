@@ -1,4 +1,5 @@
 ﻿use crate::hands::HandType;
+use num_derive::FromPrimitive;
 use strum::EnumCount;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount)]
@@ -9,7 +10,7 @@ pub enum Consumable {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, FromPrimitive)]
 pub enum Tarot {
     TheFool,
     TheMagician,
