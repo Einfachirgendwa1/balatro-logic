@@ -5,6 +5,7 @@
     },
     hands::HandType::*,
 };
+use num_derive::FromPrimitive;
 use std::mem::MaybeUninit;
 use strum::{EnumCount, EnumIter, IntoEnumIterator};
 
@@ -85,7 +86,7 @@ impl ResolvedHand<'_> {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
 pub enum HandType {
     HighCard,
     Pair,

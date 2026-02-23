@@ -37,7 +37,7 @@ pub enum Tarot {
 }
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, FromPrimitive)]
 pub enum Spectral {
     Familiar,
     Grim,

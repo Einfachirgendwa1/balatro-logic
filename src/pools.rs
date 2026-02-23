@@ -1,7 +1,11 @@
 ﻿use crate::{
     card::Card,
-    consumable::{Consumable, Consumable::TarotCard, Tarot},
-    hands::HandType::FlushFive,
+    consumable::{
+        Consumable,
+        Consumable::{PlanetCard, SpectralCard, TarotCard},
+        Spectral, Tarot,
+    },
+    hands::HandType,
     joker::{COMMON_JOKERS, Joker, JokerType, RARE_JOKERS, UNCOMMON_JOKERS},
     pools::JokerRarity::{Common, Rare, Uncommon},
     run::RunData,
@@ -57,6 +61,14 @@ impl RunData {
         [true; Tarot::COUNT]
     }
 
+    fn available_planets(&self) -> [bool; HandType::COUNT] {
+        [true; HandType::COUNT]
+    }
+
+    fn available_spectral_cards(&self) -> [bool; Spectral::COUNT] {
+        [true; Spectral::COUNT]
+    }
+
     fn poll(&mut self, pool: &[bool], pool_key: &str) -> usize {
         let seed = self.rng.seed(pool_key);
 
@@ -98,14 +110,6 @@ impl RunData {
         pool[pool_idx]
     }
 
-    fn poll_next_tarot(&mut self, key: &str) -> Tarot {
-        let available = self.available_tarots();
-        let pool_key = format!("Tarot{key}{}", self.ante);
-
-        let idx = self.poll(&available, &pool_key);
-        Tarot::from_usize(idx).unwrap()
-    }
-
     pub fn poll_next_shop_item(&mut self) -> ShopItem {
         let total_weight: f64 = self.shop.weights.iter().sum();
         math::randomseed(self.rng.seed(&format!("cdt{}", self.ante)));
@@ -120,7 +124,26 @@ impl RunData {
                         ShopItem::Joker(self.poll_next_joker("sho").construct_joker())
                     }
                     ShopItemType::Tarot => {
-                        ShopItem::Consumable(TarotCard(self.poll_next_tarot("sho")))
+                        let available = self.available_tarots();
+                        let idx = self.poll(&available, &format!("Tarotsho{}", self.ante));
+                        let tarot = TarotCard(Tarot::from_usize(idx).unwrap());
+
+                        ShopItem::Consumable(tarot)
+                    }
+                    ShopItemType::Planet => {
+                        let available = self.available_planets();
+                        let idx = self.poll(&available, &format!("Planetsho{}", self.ante));
+                        let planet = PlanetCard(HandType::from_usize(idx).unwrap());
+
+                        ShopItem::Consumable(planet)
+                    }
+                    ShopItemType::SpectralCard => {
+                        let available = self.available_spectral_cards();
+                        let idx = self.poll(&available, &format!("Spectralsho{}", self.ante));
+                        println!("Idx: {idx}");
+                        let planet = SpectralCard(Spectral::from_usize(idx).unwrap());
+
+                        ShopItem::Consumable(planet)
                     }
                     _ => todo!(),
                 };
@@ -129,6 +152,6 @@ impl RunData {
             check_weight += weight;
         }
 
-        ShopItem::Consumable(Consumable::PlanetCard(FlushFive))
+        unreachable!()
     }
 }
