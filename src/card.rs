@@ -5,7 +5,7 @@ use std::{
 };
 use strum::{EnumCount, EnumIter};
 
-#[derive(Debug, Clone, PartialEq, Eq, Copy)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct Card {
     pub rank: Rank,
     pub suit: Suit,

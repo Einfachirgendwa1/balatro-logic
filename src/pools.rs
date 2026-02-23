@@ -5,11 +5,12 @@
         Consumable::{PlanetCard, SpectralCard, TarotCard},
         Spectral, Tarot,
     },
+    decks::DEFAULT_CARDS,
     hands::HandType,
     joker::{COMMON_JOKERS, Joker, JokerType, RARE_JOKERS, UNCOMMON_JOKERS},
     pools::JokerRarity::{Common, Rare, Uncommon},
     run::RunData,
-    seeding::{math, random_idx},
+    seeding::{math, random_element, random_idx},
     shop::ShopItemType,
     vouchers::Voucher,
 };
@@ -145,7 +146,10 @@ impl RunData {
 
                         ShopItem::Consumable(planet)
                     }
-                    _ => todo!(),
+                    ShopItemType::PlayingCard => {
+                        let seed = self.rng.seed(&format!("frontsho{}", self.ante));
+                        ShopItem::PlayingCard(random_element(&DEFAULT_CARDS, seed).clone())
+                    }
                 };
             }
 
