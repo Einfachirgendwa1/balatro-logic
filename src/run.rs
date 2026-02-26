@@ -134,6 +134,9 @@ impl RunData {
             PlanetMerchant => self.shop.weights[Planet as usize] = 8.6,
             TarotTycoon => self.shop.weights[Tarot as usize] = 32.,
             PlanetTycoon => self.shop.weights[Planet as usize] = 32.,
+            Overstock | OverstockPlus => self.shop.size += 1,
+            Hone => self.shop.edition_rate = 2.,
+            GlowUp => self.shop.edition_rate = 5.,
             _ => {}
         }
     }

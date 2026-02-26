@@ -124,6 +124,6 @@ impl BalatroRng {
             .or_insert_with_key(|key| hash(format!("{key}{}", self.seed).as_bytes()));
 
         *value = (((2.134453429141 + *value * 1.72431234) % 1.) * 1e13).round() / 1e13;
-        ((*value + self.hashed_seed) / 2.0).also(|val| println!("Seeding on `{key}` yields {val}"))
+        (*value + self.hashed_seed) / 2.0
     }
 }

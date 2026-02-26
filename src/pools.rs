@@ -1,5 +1,5 @@
 ﻿use crate::{
-    card::Card,
+    card::{Card, Edition},
     consumable::{
         Consumable,
         Consumable::{PlanetCard, SpectralCard, TarotCard},
@@ -7,7 +7,11 @@
     },
     decks::DEFAULT_CARDS,
     hands::HandType,
-    joker::{COMMON_JOKERS, Joker, JokerType, RARE_JOKERS, UNCOMMON_JOKERS},
+    joker::{
+        COMMON_JOKERS, Joker, JokerEdition,
+        JokerEdition::{Base, Foil, Holographic, Negative, Polychrome},
+        JokerType, RARE_JOKERS, UNCOMMON_JOKERS,
+    },
     pools::JokerRarity::{Common, Rare, Uncommon},
     run::RunData,
     seeding::{math, random_element, random_idx},
@@ -92,6 +96,30 @@ impl RunData {
 
         let idx = self.poll(&available, &pool_key);
         Voucher::from_usize(idx).unwrap()
+    }
+
+    fn poll_joker_edition(&mut self, key: &str) -> JokerEdition {
+        math::randomseed(self.rng.seed(key));
+
+        match math::random() {
+            poll if poll > 1. - 0.003 * self.shop.edition_rate => Negative,
+            poll if poll > 1. - 0.006 * self.shop.edition_rate => Polychrome,
+            poll if poll > 1. - 0.02 * self.shop.edition_rate => Holographic,
+            poll if poll > 1. - 0.04 * self.shop.edition_rate => Foil,
+            _ => Base,
+        }
+    }
+
+    fn poll_card_edition(&mut self, key: &str, modifier: f64) -> Edition {
+        math::randomseed(self.rng.seed(key));
+
+        let rate = self.shop.edition_rate * modifier;
+        match math::random() {
+            poll if poll > 1. - 0.006 * rate => Edition::Polychrome,
+            poll if poll > 1. - 0.02 * rate => Edition::Holographic,
+            poll if poll > 1. - 0.04 * rate => Edition::Foil,
+            _ => Edition::Base,
+        }
     }
 
     fn poll_next_joker(&mut self, key: &str) -> JokerType {
