@@ -21,3 +21,4 @@
 `High Priority`
 
 - Reimplementing the RNG in native Rust
+- Add more tests
