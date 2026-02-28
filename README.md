@@ -4,7 +4,6 @@
 
 `Necessary`
 
-- Rerolling of shop
 - Boss blinds
 - Rerolling of boss blinds
 - Skip Tags

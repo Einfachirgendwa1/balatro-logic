@@ -17,10 +17,10 @@ use derive_more::From;
 use itertools::Itertools;
 use num_derive::FromPrimitive;
 use std::array;
-use strum::{EnumCount, EnumIter, IntoEnumIterator};
+use strum::{Display, EnumCount, EnumIter, IntoEnumIterator};
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive, Display)]
 pub enum BoosterPackType {
     ArcanaNormal,
     ArcanaJumbo,

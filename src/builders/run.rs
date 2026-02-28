@@ -59,7 +59,7 @@ impl RunCreator {
             consumable_slots: 5,
             vouchers: [false; Voucher::COUNT],
             ante: 1,
-            money: 4,
+            money: 4.,
             hand_size: 8,
             starting_hands: 4,
             starting_discards: if stake >= Stake::Blue { 2 } else { 3 },
@@ -75,7 +75,7 @@ impl RunCreator {
         match deck {
             Red => data.starting_discards += 1,
             Blue => data.starting_hands += 1,
-            Yellow => data.money += 10,
+            Yellow => data.money += 10.,
             Black => {
                 data.joker_slots += 1;
                 data.starting_hands -= 1;

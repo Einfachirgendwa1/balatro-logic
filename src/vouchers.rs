@@ -1,8 +1,8 @@
 ﻿use num_derive::FromPrimitive;
-use strum::{EnumCount, EnumIter};
+use strum::{Display, EnumCount, EnumIter};
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive, Display)]
 pub enum Voucher {
     Overstock,
     OverstockPlus,

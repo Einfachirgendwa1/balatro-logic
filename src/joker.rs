@@ -10,8 +10,12 @@
     run::{Run, RunData},
 };
 use num_derive::FromPrimitive;
-use std::{cell::LazyCell, mem::discriminant};
-use strum::{EnumCount, EnumIter, IntoEnumIterator};
+use std::{
+    cell::LazyCell,
+    fmt::{Display, Formatter},
+    mem::discriminant,
+};
+use strum::{Display, EnumCount, EnumIter, IntoEnumIterator};
 
 #[derive(PartialEq, Debug, Clone)]
 pub struct Joker {
@@ -24,7 +28,34 @@ pub struct Joker {
     pub dispatcher_order: DispatcherOrder,
 }
 
-#[derive(PartialEq, Debug, Copy, Clone)]
+impl Display for Joker {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        if self.stickers.perishable {
+            write!(f, "Perishable ")?;
+        }
+
+        if self.stickers.rental {
+            write!(f, "Rental ")?;
+        }
+
+        if self.stickers.eternal {
+            write!(f, "Eternal ")?;
+        }
+
+        if self.edition != JokerEdition::Base {
+            write!(f, "{} ", self.edition)?;
+        }
+
+        write!(f, "{}", self.joker_type)?;
+
+        if self.debuffed {
+            write!(f, " (debuffed)")?;
+        }
+
+        Ok(())
+    }
+}
+#[derive(PartialEq, Debug, Display, Copy, Clone)]
 pub enum JokerEdition {
     Base,
     Foil,
@@ -353,7 +384,7 @@ pub static RARE_JOKERS: [JokerType; 20] = [
 pub static LEGENDARY_JOKERS: [JokerType; 5] = [Canio, Triboulet, Yorick, Chicot, Perkeo];
 
 #[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive, Display)]
 pub enum JokerType {
     Joker,
     GreedyJoker,

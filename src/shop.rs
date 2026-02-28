@@ -3,8 +3,13 @@
     vouchers::Voucher,
 };
 use derive_more::From;
+use itertools::Itertools;
 use num_derive::FromPrimitive;
-use std::iter::repeat_with;
+use std::{
+    array,
+    fmt::{Debug, Display, Formatter},
+    iter::repeat_with,
+};
 use strum::{EnumCount, EnumIter};
 
 #[repr(u8)]
@@ -13,6 +18,16 @@ pub enum ShopItem {
     Consumable(Consumable),
     Joker(Joker),
     PlayingCard(Card),
+}
+
+impl Display for ShopItem {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        match self {
+            ShopItem::Consumable(x) => Display::fmt(x, f),
+            ShopItem::Joker(x) => Display::fmt(x, f),
+            ShopItem::PlayingCard(x) => Display::fmt(x, f),
+        }
+    }
 }
 
 #[repr(u8)]
@@ -38,6 +53,7 @@ pub struct Shop {
     pub vouchers: Vec<Voucher>,
 
     pub first_shop_buffoon: bool,
+    pub packs: [Option<BoosterPackType>; 2],
 }
 
 impl Default for Shop {
@@ -52,13 +68,45 @@ impl Default for Shop {
             vouchers: Vec::new(),
             first_shop_buffoon: false,
             inventory: Vec::new(),
+            packs: [None; 2],
         }
     }
 }
 
+impl Display for Shop {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        let pack_string = self
+            .packs
+            .iter()
+            .map(|opt| opt.map(|pack| pack.to_string()).unwrap_or("None".to_string()))
+            .join(", ");
+
+        writeln!(f, "Inventory: {}", self.inventory.iter().join(", "))?;
+        writeln!(f, "Booster Packs: {}", pack_string)?;
+        write!(f, "Vouchers: {}", self.vouchers.iter().join(", "))
+    }
+}
+
 impl Run {
-    pub fn next_shop_batch(&mut self) -> Vec<ShopItem> {
+    pub fn enter_shop(&mut self, new_ante: bool) {
+        if new_ante {
+            self.data.shop.vouchers = vec![self.data.poll_next_voucher()];
+        }
+
+        self.regenerate_shop_inventory();
+        self.data.shop.packs = array::from_fn(|_| Some(self.next_shop_booster_pack()));
+    }
+
+    pub fn reroll(&mut self) {
+        self.regenerate_shop_inventory();
+
+        self.data.money -= self.data.shop.reroll_price;
+        self.data.shop.reroll_price += 1.;
+    }
+
+    fn regenerate_shop_inventory(&mut self) {
         let shop_size = self.data.shop.size;
-        repeat_with(|| self.poll_next_shop_item()).take(shop_size).collect()
+        let inv = repeat_with(|| self.poll_next_shop_item()).take(shop_size).collect();
+        self.data.shop.inventory = inv;
     }
 }

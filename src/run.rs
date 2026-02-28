@@ -51,7 +51,7 @@ pub struct RunData {
     pub vouchers: [bool; Voucher::COUNT],
     pub starting_hands: u32,
     pub starting_discards: u32,
-    pub money: u32,
+    pub money: f64,
     pub hand_size: u32,
     pub ante: i32,
     pub times_played: [u32; HandType::COUNT],
