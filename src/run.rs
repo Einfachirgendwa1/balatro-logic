@@ -1,9 +1,9 @@
 use crate::{
     blind::{
         Blind, BlindType,
-        BlindType::{Big, Boss, ShowdownBoss, Small},
+        BlindType::{Big, Boss, Small},
+        BossBlindType,
         BossBlindType::{TheManacle, TheNeedle, TheWall, TheWater},
-        ShowdownBossBlindType::VioletVessel,
     },
     card::Card,
     consumable::{Consumable, Planet},
@@ -28,6 +28,7 @@ use crate::{
     },
     vouchers::Voucher,
 };
+use BossBlindType::VioletVessel;
 use Voucher::*;
 use itertools::Itertools;
 use std::{cmp::max, mem::take, ops::Not};
@@ -59,6 +60,8 @@ pub struct RunData {
     pub base_mult: [u64; HandType::COUNT],
     pub hand_levels: [u32; HandType::COUNT],
     pub planet_unlocked: [bool; Planet::COUNT],
+    pub times_boss_used: [usize; BossBlindType::COUNT],
+    pub this_antes_boss: BossBlindType,
     pub showman: bool,
 }
 
@@ -153,9 +156,8 @@ impl Run {
             Big => base * 1.5,
             Boss(TheWall) => base * 4.,
             Boss(TheNeedle) => base,
-            Boss(_) => base * 2.,
-            ShowdownBoss(VioletVessel) => base * 6.,
-            ShowdownBoss(_) => base * 2.,
+            Boss(VioletVessel) => base * 6.,
+            _ => base * 2.,
         };
 
         let discards = match blind_type {
@@ -182,6 +184,7 @@ impl Run {
             cards,
             held: Vec::new(),
             selected: Hand::default(),
+            blind_data: blind_type.default_data(),
             blind_type,
             requirement,
             hands,
@@ -286,7 +289,7 @@ impl Run {
                                 blind.score += blind.chips * blind.mult;
 
                                 if blind.score >= blind.requirement {
-                                    if blind.blind_type.boss() {
+                                    if matches!(blind.blind_type, Boss(_)) {
                                         if self.data.ante == 8 {
                                             return SimulationResult::Won;
                                         }

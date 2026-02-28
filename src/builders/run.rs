@@ -1,5 +1,5 @@
 ﻿use crate::{
-    blind::BlindType,
+    blind::{BlindType, BossBlindType},
     card::{Card, Suit::*},
     consumable::{
         Consumable::{SpectralCard, TarotCard},
@@ -68,9 +68,13 @@ impl RunCreator {
             planet_unlocked: [
                 true, true, true, true, true, true, true, true, true, false, false, false,
             ],
+            times_boss_used: [0; _],
+            this_antes_boss: BossBlindType::AmberAcorn,
             showman: false,
             shop: Shop::default(),
         };
+
+        data.this_antes_boss = data.current_boss();
 
         match deck {
             Red => data.starting_discards += 1,

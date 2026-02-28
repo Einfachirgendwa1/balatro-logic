@@ -4,7 +4,6 @@
 
 `Necessary`
 
-- Boss blinds
 - Rerolling of boss blinds
 - Skip Tags
     - Base
