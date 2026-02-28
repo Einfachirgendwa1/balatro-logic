@@ -26,6 +26,9 @@ where
     #[builder(default, setter(strip_option))]
     order: Option<[T; N]>,
 
+    #[builder(setter(strip_bool(fallback = set_dont_filter_on_showman)))]
+    dont_filter_on_showman: bool,
+
     #[builder(default, setter(skip))]
     _phantom_t: PhantomData<T>,
 
@@ -40,7 +43,8 @@ where
     Consumable: From<T>,
 {
     pub fn create(self, data: &mut RunData) -> Res {
-        let Self { type_key, origin_key, filter, soul, order, .. } = self;
+        let Self { type_key, origin_key, filter, soul, order, dont_filter_on_showman, .. } = self;
+        let filter = |t| filter.as_ref().is_none_or(|f| f(&t));
 
         if let Some(spectral) = soul {
             math::randomseed(data.rng.seed(&format!("soul_{type_key}{}", data.ante)));
@@ -52,13 +56,16 @@ where
 
         let order = order.unwrap_or_else(|| array::from_fn(|idx| T::from_usize(idx).unwrap()));
 
-        let available = order.map(|t| {
-            let consumable = Consumable::from(t);
-            let shop_item = ShopItem::Consumable(consumable);
+        let available = order.map(|t| match data.showman {
+            true => dont_filter_on_showman || filter(t),
+            false => {
+                let consumable = Consumable::from(t);
+                let shop_item = ShopItem::Consumable(consumable);
 
-            filter.as_ref().is_none_or(|f| f(&t))
-                && !data.consumables.contains(&consumable)
-                && !data.shop.inventory.contains(&shop_item)
+                filter(t)
+                    && !data.consumables.contains(&consumable)
+                    && !data.shop.inventory.contains(&shop_item)
+            }
         });
 
         let idx = data.poll(&available, &format!("{type_key}{origin_key}{}", data.ante));

@@ -134,6 +134,7 @@ impl Run {
                 .filter(&|joker_type| {
                     !jokers[..idx].iter().any(|j| j.as_ref().unwrap().joker_type == *joker_type)
                 })
+                .dont_filter_on_showman()
                 .build()
                 .create(self);
 
@@ -159,6 +160,7 @@ impl RunData {
                     .filter(&|spectral| {
                         !arcana_cards[..idx].contains(&Some(ArcanaCard::Spectral(*spectral)))
                     })
+                    .dont_filter_on_showman()
                     .build()
                     .create(self)
             } else {
@@ -169,6 +171,7 @@ impl RunData {
                     .filter(&|tarot| {
                         !arcana_cards[..idx].contains(&Some(ArcanaCard::Tarot(*tarot)))
                     })
+                    .dont_filter_on_showman()
                     .build()
                     .create(self)
             };
@@ -201,6 +204,7 @@ impl RunData {
                         !celestial_cards[..idx].contains(&Some(CelestialCard::Planet(*planet)))
                             && unlocked[*planet as usize]
                     })
+                    .dont_filter_on_showman()
                     .build()
                     .create(self)
             };
@@ -220,6 +224,7 @@ impl RunData {
                 .origin_key("spe")
                 .soul(TheSoul)
                 .filter(&|spectral| !spectral_cards[..idx].contains(&Some(*spectral)))
+                .dont_filter_on_showman()
                 .build()
                 .create(self);
 

@@ -4,7 +4,6 @@
 
 `Necessary`
 
-- Fix permanent showman
 - Rerolling of shop
 - Boss blinds
 - Rerolling of boss blinds

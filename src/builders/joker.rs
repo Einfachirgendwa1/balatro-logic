@@ -38,11 +38,13 @@ impl JokerRarity {
 #[derive(TypedBuilder)]
 pub struct JokerCreator<'a> {
     origin_key: &'a str,
-
     joker_rarity: JokerRarityMode,
 
     #[builder(default, setter(strip_option))]
     filter: Option<&'a dyn Fn(&JokerType) -> bool>,
+
+    #[builder(setter(strip_bool(fallback = set_dont_filter_on_showman)))]
+    dont_filter_on_showman: bool,
 
     #[builder(default)]
     sell_value: u32,
@@ -78,6 +80,7 @@ impl<'a> JokerCreator<'a> {
             origin_key,
             joker_rarity,
             filter,
+            dont_filter_on_showman,
             edition,
             mut stickers,
             sell_value,
@@ -111,14 +114,16 @@ impl<'a> JokerCreator<'a> {
         let available = pool
             .iter()
             .map(|joker| {
-                filter.is_none_or(|func| func(joker))
-                    && !data.shop.inventory.iter().any(|shop_joker| match shop_joker {
-                        ShopItem::Joker(shop_joker_type) => shop_joker_type.joker_type == *joker,
-                        _ => false,
-                    })
-                    && !jokers
-                        .iter()
-                        .any(|already_owned_joker| already_owned_joker.joker_type == *joker)
+                ((dont_filter_on_showman && data.showman) || filter.is_none_or(|func| func(joker)))
+                    && (data.showman
+                        || (!data.shop.inventory.iter().any(|shop_joker| match shop_joker {
+                            ShopItem::Joker(shop_joker_type) => {
+                                shop_joker_type.joker_type == *joker
+                            }
+                            _ => false,
+                        }) && !jokers
+                            .iter()
+                            .any(|already_owned_joker| already_owned_joker.joker_type == *joker)))
             })
             .collect_vec();
 

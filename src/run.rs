@@ -59,6 +59,7 @@ pub struct RunData {
     pub base_mult: [u64; HandType::COUNT],
     pub hand_levels: [u32; HandType::COUNT],
     pub planet_unlocked: [bool; Planet::COUNT],
+    pub showman: bool,
 }
 
 pub static BLIND_REQUIREMENTS: [[f64; 3]; 9] = [

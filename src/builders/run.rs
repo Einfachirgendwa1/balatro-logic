@@ -68,6 +68,7 @@ impl RunCreator {
             planet_unlocked: [
                 true, true, true, true, true, true, true, true, true, false, false, false,
             ],
+            showman: false,
             shop: Shop::default(),
         };
 
