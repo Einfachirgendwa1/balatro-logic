@@ -1,43 +1,22 @@
 ﻿use crate::{
-    card::{Card, Edition},
-    consumable::{
-        Consumable,
-        Consumable::{PlanetCard, SpectralCard, TarotCard},
-        Spectral, Tarot,
+    builders::{
+        consumable::ConsumableCreator,
+        joker::{JokerCreator, JokerRarityMode},
     },
+    card::Edition,
+    consumable::{PLANET_ORDER, Planet, Spectral, Tarot},
     decks::DEFAULT_CARDS,
-    hands::HandType,
     joker::{
-        COMMON_JOKERS, Joker, JokerEdition,
+        JokerEdition,
         JokerEdition::{Base, Foil, Holographic, Negative, Polychrome},
-        JokerType, RARE_JOKERS, UNCOMMON_JOKERS,
     },
-    pools::JokerRarity::{Common, Rare, Uncommon},
-    run::RunData,
+    run::{Run, RunData},
     seeding::{math, random_element, random_idx},
-    shop::ShopItemType,
+    shop::{ShopItem, ShopItemType},
     vouchers::Voucher,
 };
-use num_derive::FromPrimitive;
 use num_traits::FromPrimitive;
-use strum::{EnumCount, EnumIter, IntoEnumIterator};
-
-#[repr(u8)]
-#[derive(Debug, Clone, PartialEq, EnumCount)]
-pub enum ShopItem {
-    Consumable(Consumable),
-    Joker(Joker),
-    PlayingCard(Card),
-}
-
-#[repr(u8)]
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]
-pub enum JokerRarity {
-    Common,
-    Uncommon,
-    Rare,
-    Legendary,
-}
+use strum::{EnumCount, IntoEnumIterator};
 
 impl RunData {
     pub fn available_vouchers(&self) -> [bool; Voucher::COUNT] {
@@ -58,23 +37,7 @@ impl RunData {
         v
     }
 
-    fn available_jokers(&self, rarity_pool: &[JokerType]) -> Vec<bool> {
-        rarity_pool.iter().map(|_| true).collect()
-    }
-
-    fn available_tarots(&self) -> [bool; Tarot::COUNT] {
-        [true; Tarot::COUNT]
-    }
-
-    fn available_planets(&self) -> [bool; HandType::COUNT] {
-        [true; HandType::COUNT]
-    }
-
-    fn available_spectral_cards(&self) -> [bool; Spectral::COUNT] {
-        [true; Spectral::COUNT]
-    }
-
-    fn poll(&mut self, pool: &[bool], pool_key: &str) -> usize {
+    pub(crate) fn poll(&mut self, pool: &[bool], pool_key: &str) -> usize {
         let seed = self.rng.seed(pool_key);
 
         let mut idx = random_idx(pool, seed);
@@ -84,6 +47,7 @@ impl RunData {
             i += 1;
 
             let seed = self.rng.seed(&format!("{pool_key}_resample{i}"));
+
             idx = random_idx(pool, seed);
         }
 
@@ -121,61 +85,56 @@ impl RunData {
             _ => Edition::Base,
         }
     }
+}
 
-    fn poll_next_joker(&mut self, key: &str) -> JokerType {
-        let seed = self.rng.seed(&format!("rarity{}{key}", self.ante));
-        math::randomseed(seed);
-
-        let (rarity, pool) = match math::random() {
-            seed if seed > 0.95 => (Rare, &RARE_JOKERS as &[JokerType]),
-            seed if seed > 0.7 => (Uncommon, &UNCOMMON_JOKERS as _),
-            _ => (Common, &COMMON_JOKERS as _),
-        };
-
-        let available = self.available_jokers(pool);
-        let pool_key = format!("Joker{}{key}{}", rarity as u8 + 1, self.ante);
-
-        let pool_idx = self.poll(&available, &pool_key);
-        pool[pool_idx]
-    }
-
+impl Run {
     pub fn poll_next_shop_item(&mut self) -> ShopItem {
-        let total_weight: f64 = self.shop.weights.iter().sum();
-        math::randomseed(self.rng.seed(&format!("cdt{}", self.ante)));
+        let Self { data, .. } = self;
+        let total_weight: f64 = data.shop.weights.iter().sum();
+        math::randomseed(data.rng.seed(&format!("cdt{}", data.ante)));
         let polled_weight = math::random() * total_weight;
 
         let mut check_weight = 0.;
         for item_type in ShopItemType::iter() {
-            let weight = self.shop.weights[item_type as usize];
+            let weight = data.shop.weights[item_type as usize];
             if check_weight < polled_weight && polled_weight < check_weight + weight {
                 return match item_type {
-                    ShopItemType::Joker => {
-                        ShopItem::Joker(self.poll_next_joker("sho").construct_joker())
-                    }
-                    ShopItemType::Tarot => {
-                        let available = self.available_tarots();
-                        let idx = self.poll(&available, &format!("Tarotsho{}", self.ante));
-                        let tarot = TarotCard(Tarot::from_usize(idx).unwrap());
+                    ShopItemType::Tarot => ConsumableCreator::<{ Tarot::COUNT }, Tarot>::builder()
+                        .type_key("Tarot")
+                        .origin_key("sho")
+                        .build()
+                        .create(data)
+                        .into(),
 
-                        ShopItem::Consumable(tarot)
-                    }
                     ShopItemType::Planet => {
-                        let available = self.available_planets();
-                        let idx = self.poll(&available, &format!("Planetsho{}", self.ante));
-                        let planet = PlanetCard(HandType::from_usize(idx).unwrap());
-
-                        ShopItem::Consumable(planet)
+                        ConsumableCreator::<{ Planet::COUNT }, Planet>::builder()
+                            .type_key("Planet")
+                            .origin_key("sho")
+                            .order(PLANET_ORDER)
+                            .build()
+                            .create(data)
+                            .into()
                     }
+
                     ShopItemType::SpectralCard => {
-                        let available = self.available_spectral_cards();
-                        let idx = self.poll(&available, &format!("Spectralsho{}", self.ante));
-                        println!("Idx: {idx}");
-                        let planet = SpectralCard(Spectral::from_usize(idx).unwrap());
-
-                        ShopItem::Consumable(planet)
+                        ConsumableCreator::<{ Spectral::COUNT }, Spectral>::builder()
+                            .type_key("Spectral")
+                            .origin_key("sho")
+                            .filter(&|spectral| *spectral != Spectral::TheSoul)
+                            .build()
+                            .create(data)
+                            .into()
                     }
+
+                    ShopItemType::Joker => JokerCreator::builder()
+                        .origin_key("sho")
+                        .joker_rarity(JokerRarityMode::RandomNonLegendary)
+                        .build()
+                        .create(self)
+                        .into(),
+
                     ShopItemType::PlayingCard => {
-                        let seed = self.rng.seed(&format!("frontsho{}", self.ante));
+                        let seed = data.rng.seed(&format!("frontsho{}", data.ante));
                         ShopItem::PlayingCard(random_element(&DEFAULT_CARDS, seed).clone())
                     }
                 };

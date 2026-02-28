@@ -5,7 +5,6 @@
 `Necessary`
 
 - Fix permanent showman
-- Booster packs
 - Rerolling of shop
 - Boss blinds
 - Rerolling of boss blinds

@@ -6,7 +6,7 @@ use crate::{
         ShowdownBossBlindType::VioletVessel,
     },
     card::Card,
-    consumable::Consumable,
+    consumable::{Consumable, Planet},
     controller::{
         BlindAction, BlindSelectionAction, CashoutAction, Controller, ShopAction, SimulationResult,
     },
@@ -19,8 +19,8 @@ use crate::{
     misc,
     seeding::{BalatroRng, shuffle},
     shop::{
-        Shop,
-        ShopItemType::{Planet, PlayingCard, Tarot},
+        Shop, ShopItemType,
+        ShopItemType::{PlayingCard, Tarot},
     },
     stake::{
         Stake,
@@ -58,6 +58,7 @@ pub struct RunData {
     pub base_chips: [u64; HandType::COUNT],
     pub base_mult: [u64; HandType::COUNT],
     pub hand_levels: [u32; HandType::COUNT],
+    pub planet_unlocked: [bool; Planet::COUNT],
 }
 
 pub static BLIND_REQUIREMENTS: [[f64; 3]; 9] = [
@@ -131,12 +132,13 @@ impl RunData {
             }
             MagicTrick => self.shop.weights[PlayingCard as usize] = 4.,
             TarotMerchant => self.shop.weights[Tarot as usize] = 9.6,
-            PlanetMerchant => self.shop.weights[Planet as usize] = 8.6,
+            PlanetMerchant => self.shop.weights[ShopItemType::Planet as usize] = 8.6,
             TarotTycoon => self.shop.weights[Tarot as usize] = 32.,
-            PlanetTycoon => self.shop.weights[Planet as usize] = 32.,
+            PlanetTycoon => self.shop.weights[ShopItemType::Planet as usize] = 32.,
             Overstock | OverstockPlus => self.shop.size += 1,
             Hone => self.shop.edition_rate = 2.,
             GlowUp => self.shop.edition_rate = 5.,
+            OmenGlobe => {}
             _ => {}
         }
     }

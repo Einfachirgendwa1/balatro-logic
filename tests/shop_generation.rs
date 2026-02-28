@@ -1,16 +1,21 @@
 ﻿use balatro_logic::{
+    builders::run::RunCreator,
     consumable::{Consumable::TarotCard, Tarot},
     decks::DeckType,
     joker::{Joker, JokerType},
-    pools::ShopItem,
-    run::Run,
+    shop::ShopItem,
     stake::Stake,
     vouchers::Voucher,
 };
 
 #[test]
 fn vouchers() {
-    let mut run = Run::new(DeckType::Red, Stake::White, "AAAAAAAA".to_string());
+    let mut run = RunCreator::builder()
+        .deck(DeckType::Red)
+        .stake(Stake::White)
+        .seed("AAAAAAAA".to_string())
+        .build()
+        .create();
 
     run.data.ante = 0;
     assert_eq!(run.data.poll_next_voucher(), Voucher::TarotMerchant);
@@ -33,16 +38,16 @@ fn vouchers() {
 
     run.data.ante = 1;
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bull)
+        matches!(run.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bull)
     );
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::FacelessJoker)
+        matches!(run.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::FacelessJoker)
     );
-    run.data.poll_next_shop_item();
-    assert_eq!(run.data.poll_next_shop_item(), ShopItem::Consumable(TarotCard(Tarot::TheSun)));
+    run.poll_next_shop_item();
+    assert_eq!(run.poll_next_shop_item(), ShopItem::Consumable(TarotCard(Tarot::TheSun)));
 
     run.data.ante = 2;
     assert!(
-        matches!(run.data.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bloodstone)
+        matches!(run.poll_next_shop_item(), ShopItem::Joker(Joker { joker_type , .. }) if joker_type == JokerType::Bloodstone)
     );
 }

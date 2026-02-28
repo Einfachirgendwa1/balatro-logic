@@ -1,11 +1,18 @@
-﻿use crate::hands::HandType;
+﻿use crate::hands::{
+    HandType,
+    HandType::{
+        FiveOfAKind, Flush, FlushFive, FlushHouse, FourOfAKind, FullHouse, HighCard, Pair,
+        Straight, StraightFlush, ThreeOfAKind, TwoPair,
+    },
+};
+use derive_more::From;
 use num_derive::FromPrimitive;
 use strum::EnumCount;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, From)]
 pub enum Consumable {
     TarotCard(Tarot),
-    PlanetCard(HandType),
+    PlanetCard(Planet),
     SpectralCard(Spectral),
 }
 
@@ -36,6 +43,8 @@ pub enum Tarot {
     TheWorld,
 }
 
+pub type Planet = HandType;
+
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, FromPrimitive)]
 pub enum Spectral {
@@ -58,3 +67,18 @@ pub enum Spectral {
     TheSoul,
     BlackHole,
 }
+
+pub const PLANET_ORDER: [Planet; HandType::COUNT] = [
+    Pair,
+    ThreeOfAKind,
+    FullHouse,
+    FourOfAKind,
+    Flush,
+    Straight,
+    TwoPair,
+    StraightFlush,
+    HighCard,
+    FiveOfAKind,
+    FlushHouse,
+    FlushFive,
+];

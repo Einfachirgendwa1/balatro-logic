@@ -35,9 +35,9 @@ pub enum JokerEdition {
 
 #[derive(Debug, Default, Copy, Clone, PartialEq)]
 pub struct Stickers {
-    eternal: bool,
-    perishable: bool,
-    rental: bool,
+    pub eternal: bool,
+    pub perishable: bool,
+    pub rental: bool,
 }
 
 thread_local! {
@@ -59,21 +59,6 @@ impl PartialEq<JokerInternalState> for JokerType {
 impl PartialEq<JokerType> for JokerInternalState {
     fn eq(&self, other: &JokerType) -> bool {
         other == self
-    }
-}
-
-impl JokerType {
-    // WIP
-    pub fn construct_joker(self) -> Joker {
-        Joker {
-            joker_type: self,
-            data: JokerInternalState::None,
-            edition: JokerEdition::Base,
-            stickers: Stickers::default(),
-            sell_value: 0,
-            debuffed: false,
-            dispatcher_order: DispatcherOrder::default(),
-        }
     }
 }
 
@@ -365,7 +350,7 @@ pub static RARE_JOKERS: [JokerType; 20] = [
     BurntJoker,
 ];
 
-pub const LEGENDARY_JOKERS: [JokerType; 5] = [Canio, Triboulet, Yorick, Chicot, Perkeo];
+pub static LEGENDARY_JOKERS: [JokerType; 5] = [Canio, Triboulet, Yorick, Chicot, Perkeo];
 
 #[repr(u8)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, EnumCount, EnumIter, FromPrimitive)]

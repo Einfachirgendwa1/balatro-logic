@@ -1,7 +1,6 @@
 ﻿use crate::{
     card::{Card, MultiSuit},
     hands::Hand,
-    joker::Joker,
 };
 
 pub struct HandPlayedEventData {
@@ -14,10 +13,4 @@ pub struct CardScoredEventData<'a> {
     pub hand_played: &'a mut HandPlayedEventData,
     pub suit: MultiSuit,
     pub face_card: bool,
-}
-
-pub struct AdditionalDataEventJoker<'a> {
-    pub jokers_left: &'a mut [Joker],
-    pub jokers_right: &'a mut [Joker],
-    pub position: usize,
 }

@@ -1,5 +1,6 @@
 ﻿use balatro_logic::{
     blind::Blind,
+    builders::run::RunCreator,
     card::{
         Card,
         Rank::{Queen, Rank2, Rank7, Rank8, Rank10},
@@ -7,7 +8,7 @@
     },
     controller::{BlindAction, Controller, SimulationResult},
     decks::DeckType,
-    run::{Run, RunData},
+    run::RunData,
     seeding::BalatroRng,
     stake::Stake,
 };
@@ -16,7 +17,7 @@ use itertools::Itertools;
 #[test]
 fn erratic_bugged_seeds() {
     assert_eq!(
-        Run::gen_erratic(&mut BalatroRng::new("BGY5SDS".to_string())),
+        RunCreator::gen_erratic(&mut BalatroRng::new("BGY5SDS".to_string())),
         vec![Card::new(Spade, Rank10); 52]
     )
 }
@@ -48,6 +49,13 @@ fn initial_draw() {
         }
     }
 
-    let res = Run::new(DeckType::Red, Stake::White, "AAAAAAAA".to_string()).simulate(Simulation);
+    let res = RunCreator::builder()
+        .deck(DeckType::Red)
+        .stake(Stake::White)
+        .seed("AAAAAAAA".to_string())
+        .build()
+        .create()
+        .simulate(Simulation);
+
     assert_eq!(res, SimulationResult::Aborted);
 }
