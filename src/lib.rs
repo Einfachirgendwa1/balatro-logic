@@ -19,4 +19,5 @@ pub mod run;
 pub mod seeding;
 pub mod shop;
 pub mod stake;
+pub mod tags;
 pub mod vouchers;

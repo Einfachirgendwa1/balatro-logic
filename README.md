@@ -6,8 +6,6 @@
 
 - Rerolling of boss blinds
 - Skip Tags
-    - Base
-    - Generation
     - Effects
 - Joker functionality
 - `Controller` trait
